@@ -1,0 +1,4 @@
+uint8 id_task
+float32 deadline_task
+float32 weight_task
+geometry_msgs/Point location_task

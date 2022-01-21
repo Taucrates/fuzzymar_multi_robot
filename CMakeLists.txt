@@ -1,0 +1,61 @@
+cmake_minimum_required(VERSION 3.0.2)
+project(fuzzymar_multi_robot)
+
+## Compile as C++11, supported in ROS Kinetic and newer
+# add_compile_options(-std=c++11)
+
+## Find catkin macros and libraries
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  roslaunch
+  rospy
+  std_msgs
+  geometry_msgs
+  message_generation
+  tf2_ros
+  gazebo_msgs
+)
+
+## Generate messages in the 'msg' folder
+ add_message_files(
+   FILES
+   global_goal.msg
+   mission.msg
+ )
+
+## Generate added messages and services with any dependencies listed here
+ generate_messages(
+   DEPENDENCIES
+   std_msgs
+   geometry_msgs
+   gazebo_msgs
+ )
+
+
+###################################
+## catkin specific configuration ##
+###################################
+catkin_package(
+#  LIBRARIES fuzzymar_multi_robot
+  CATKIN_DEPENDS roscpp roslaunch rospy std_msgs geometry_msgs message_runtime tf2_ros gazebo_msgs
+#  DEPENDS system_lib
+)
+
+###########
+## Build ##
+###########
+
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+)
+
+## nodes
+add_executable(monitor src/monitor.cpp)
+target_link_libraries(monitor ${catkin_LIBRARIES})
+
+add_executable(robot_operation src/robot_operation.cpp)
+target_link_libraries(robot_operation ${catkin_LIBRARIES})
+
+## deps
+#add_dependencies(monitor monitor_generate_messages_cpp)
+#add_dependencies(robot_operation robot_operation_generate_messages_cpp)
