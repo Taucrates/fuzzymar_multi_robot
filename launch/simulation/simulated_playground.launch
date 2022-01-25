@@ -1,0 +1,12 @@
+<!-- Launches Gazebo simulation and spawns kobukis in a world -->
+<launch>
+  <arg name="world_label" default="srvlab"/>
+
+  <!-- start Gazebo -->
+  <include file="$(find kobuki_multi_robot)/simulation/launch/gazebo.launch">
+    <arg name="world_label" value="$(arg world_label)"/>
+  </include>
+
+  <!-- Spawn kobukis -->
+  <include file="$(find fuzzymar_multi_robot)/launch/simulation/spawn_kobukis.launch"/>
+</launch>

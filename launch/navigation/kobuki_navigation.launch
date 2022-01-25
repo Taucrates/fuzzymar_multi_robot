@@ -1,0 +1,32 @@
+<launch>
+	<!-- Arguments -->
+	<arg name="robot_name" default="kobuki"/>
+	<arg name="kobuki_id" default="1"/>
+	<arg name="mission_label" default="default"/>
+
+	<!-- odom to map TF
+	<node pkg="tf" type="static_transform_publisher" name="robot_to_map" args="$(arg init_pose_x) $(arg init_pose_y) 0.0 0.0 0.0 0.0 /map /$(arg robot_name)/odom 100"/>
+	-->
+	
+	<!-- Kobuki amcl-->
+	<include file="$(find kobuki_multi_robot)/launch/navigation_amcl/amcl.launch" >
+		<arg name="robot_name" value="$(arg robot_name)"/>
+		<arg name="mission_label" value="$(arg mission_label)"/>
+	</include>
+	
+	<!-- Kobuki move_base-->
+	<include file="$(find kobuki_multi_robot)/launch/navigation_amcl/move_base.launch" >
+		<arg name="robot_name" value="$(arg robot_name)"/>
+	</include>
+
+	<!-- Velocitiy smoother -->
+	<include file="$(find kobuki_multi_robot)/launch/velocity_smoother.launch">
+		<arg name="robot_name" value="$(arg robot_name)"/>
+	</include>
+
+	<!-- Robot Operation-->
+	<include file="$(find fuzzymar_multi_robot)/launch/robot_operation.launch" >
+		<arg name="robot_name" value="$(arg robot_name)"/>
+		<arg name="kobuki_id" value="$(arg kobuki_id)"/>
+	</include>
+</launch>

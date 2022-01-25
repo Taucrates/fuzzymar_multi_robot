@@ -21,6 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    global_goal.msg
    mission.msg
+   missionArray.msg
+   action_task.msg
  )
 
 ## Generate added messages and services with any dependencies listed here

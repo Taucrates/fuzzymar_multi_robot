@@ -1,0 +1,27 @@
+<!--
+  Test launcher
+ -->
+<launch>
+  <arg name="rviz_file" default="fuzzymar_visualization"/>
+  <arg name="map_name" default="srvlab_small"/>
+  <arg name="map_file" default="$(find kobuki_multi_robot)/maps/$(arg map_name).yaml"/>
+  <arg name="mission_file_name" default="default.txt"/>
+  
+  <!-- World to map TF -->
+  <!-- subterraneo args="1.95 22.85 0.0 -3.10159265359 0.0 0.0 /world /map 1"-->
+  <!-- srvlab args="1.0 3.0 0.0 0.0 0.0 0.0 /world /map 100"-->
+  <!--<node pkg="tf" type="static_transform_publisher" name="world_to_map" args="0.0 -2.4 0.0 0.0 0.0 0.0 /world /map 1"/>-->
+
+  <!-- RVIZ -->    
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find fuzzymar_multi_robot)/rviz/$(arg rviz_file).rviz" output="log"/>
+  
+  <!-- Map Server (publish the map)-->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+    <param name="frame_id" value="map" />
+  </node>
+
+  <!-- Monitor -->
+	<include file="$(find fuzzymar_multi_robot)/launch/monitor.launch">
+		<arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_file_name)"/>
+	</include>
+</launch>

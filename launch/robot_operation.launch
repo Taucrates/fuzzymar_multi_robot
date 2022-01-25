@@ -4,10 +4,10 @@
 <launch>
   <arg name="robot_name" default="kobuki"/>
   <arg name="kobuki_id" default="1"/>
-  <!-- Multi master slave 
-  <group ns="$(arg robot_name)"> -->
+  <!-- Multi master slave -->
+  <group ns="$(arg robot_name)">
     <node pkg="fuzzymar_multi_robot" type="robot_operation" name="robot_operation" output="screen" >
-      <!--<param name="kobuki_id" type="int" value="$(arg kobuki_id)" />-->
+      <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />
     </node>
-  <!--</group> -->
+  </group>
 </launch>
