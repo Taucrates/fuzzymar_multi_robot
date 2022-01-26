@@ -7,6 +7,7 @@
 
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Empty.h"
 #include <fuzzymar_multi_robot/mission.h>
 #include <fuzzymar_multi_robot/missionArray.h>
 #include <fuzzymar_multi_robot/action_task.h>
@@ -35,6 +36,7 @@ struct Mission {
 // FLAGS
 bool first_loop = true;
 bool missions_update = false;
+bool missions_updated = true;
 
 // TOPICS
 std::string state_pub_topic = "/mission_state";
@@ -83,7 +85,8 @@ int main(int argc, char **argv)
 
 	// Publishers
   ros::Publisher mission_pub = n.advertise<fuzzymar_multi_robot::missionArray>(state_pub_topic, 10);
-  ros::Publisher vis_pub = n.advertise<visualization_msgs::MarkerArray>( "visualization_marker_array", 0 );
+  ros::Publisher vis_pub = n.advertise<visualization_msgs::MarkerArray>( "visualization_marker_array", 1);
+  ros::Publisher end_mission_pub = n.advertise<std_msgs::Empty>( "/mission_accomplished", 10);
 
   // Variable as buffer to read de keyboard 
   char cmd[1];
@@ -99,7 +102,7 @@ int main(int argc, char **argv)
 
     if(first_loop){
 
-        ROS_INFO("Mission file executed: %s",mission_path_file.c_str());
+        ROS_DEBUG("Mission file executed: %s",mission_path_file.c_str());
         ROS_INFO("Press ENTER to begin");
         
         std::cin.getline(cmd, 1);
@@ -108,7 +111,7 @@ int main(int argc, char **argv)
 
         for(int i = 0 ; i < missions.size() ; i++)
         {
-          ROS_INFO("ID: %i , DD: %f , WEIGTH: %f , X: %f , Y: %f , Robots: %i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task);
+          ROS_DEBUG("ID: %i , DD: %f , WEIGTH: %f , X: %f , Y: %f , Robots: %i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task);
         }
 
         // VERY FIRST publish mission
@@ -120,7 +123,10 @@ int main(int argc, char **argv)
         first_loop = false;
     }
 
-    missionsUpdate();
+    if(missions_updated)
+    {
+      missionsUpdate();
+    }
 
 		if(missions_update) // publish the vector missions when is updated
 		{
@@ -132,10 +138,20 @@ int main(int argc, char **argv)
 				ROS_INFO("ID: %i , DD: %f , WEIGTH: %f , X: %f , Y: %f , Robots: %i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task);
 			}
 
+      if(missions.size() == 0)
+      {
+        ROS_INFO("Mission accomplished");
+        std_msgs::Empty end_msg;
+        end_mission_pub.publish(end_msg);
+        missions_updated = false;
+      } else {
+        missions_updated = true;
+      }
+      publishMarkers(&vis_pub);
+
 			missions_update = false;
 		}
 
-    publishMarkers(&vis_pub);
 
     ros::spinOnce();
 
@@ -205,6 +221,7 @@ void publishMarkers(ros::Publisher* vis_pub)
 {
     visualization_msgs::MarkerArray marker;
     visualization_msgs::Marker aux_marker;
+    aux_marker.action = visualization_msgs::Marker::DELETEALL;
 
     for(int i = 0 ; i < missions.size() ; i++)
     {
@@ -243,7 +260,7 @@ void missionsUpdate()
   for(uint16_t i = 0 ; i < missions.size() ; i++)
   {
     missions[i].weight = missions[i].weight - ((float)missions[i].doing_task * (1.0/(float)LOOPHZ)); // the weight is decreased due to robot/s work
-    ROS_INFO("Task %i has weight: %f", missions[i].id_task, missions[i].weight);
+    ROS_DEBUG("Task %i has weight: %f", missions[i].id_task, missions[i].weight);
     if(missions[i].weight <= 0)
     {
       missions.erase(missions.begin()+i);// eliminate this task of vector missions

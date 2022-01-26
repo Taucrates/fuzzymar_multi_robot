@@ -28,5 +28,5 @@
 	<include file="$(find fuzzymar_multi_robot)/launch/robot_operation.launch" >
 		<arg name="robot_name" value="$(arg robot_name)"/>
 		<arg name="kobuki_id" value="$(arg kobuki_id)"/>
-	</include>
+	</include> 
 </launch>

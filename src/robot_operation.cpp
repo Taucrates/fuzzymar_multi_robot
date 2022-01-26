@@ -7,7 +7,9 @@
 
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Empty.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "actionlib_msgs/GoalID.h"
 #include "actionlib_msgs/GoalStatus.h"
 #include "actionlib_msgs/GoalStatusArray.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
@@ -21,7 +23,7 @@
 #include <vector>
 #include <iomanip>
 
-#define DEBUGGING 1
+#define DEBUGGING 0
 
 // STRUCTS
 
@@ -55,6 +57,7 @@ ros::Time init_task; // time at which current task begins
 bool new_mission_state = false;
 bool way_to_task = false; // indicates if the robot is on the way of a task
 bool send_action_task = false; // allow to send action_task msg
+bool end_mission = false;
 
 // FUNCTIONS DECLARATION
 float distance(float x1, float y1, float x2, float y2); // calculate the distance between 2 points in 2D
@@ -73,21 +76,6 @@ void publishTask(ros::Publisher* task_pub);
 void missionStateCallback(const fuzzymar_multi_robot::missionArray::ConstPtr& mission)
 {
 
-  /*float id_task, deadline, weight, x, y, doing_task, enable; // In a 3D navigation have to add z pose
-  id_task = (float)mission->id_task;
-  deadline = mission->deadline_task;
-  weight = mission->weight_task;
-  x = mission->location_task.x;
-  y = mission->location_task.y;
-  doing_task = 0.0; // 0 robots doing the task
-  enable = 1.0; // is enable
-
-  //z = mission->location_task.z;  // 3D navigation
-
-  // building mission vector
-  std::vector<float> aux_mission = {id_task, deadline, weight, x, y, doing_task, enable}; // In a 3D navigation have to add z pose
-
-  missions.push_back(aux_mission);*/
   missions.clear();
 
   Mission mission_data;
@@ -138,6 +126,12 @@ void statusGoalCallback(const actionlib_msgs::GoalStatusArray::ConstPtr& stat)
   }
 
 }
+
+void endMissionCallback(const std_msgs::Empty::ConstPtr& end_msg)
+{
+  ROS_INFO("End msg received");
+  end_mission = true;
+}
 /********************************************************************************************
 ***************************************** MAIN **********************************************
 ********************************************************************************************/
@@ -153,10 +147,13 @@ int main(int argc, char **argv)
   ros::Subscriber mission_sub = n.subscribe(state_sub_topic, 1000, missionStateCallback);
   ros::Subscriber pose_sub = n.subscribe(pose_sub_topic, 1000, actualPoseCallback);
   ros::Subscriber goal_status_sub = n.subscribe(goal_status_sub_topic, 1000, statusGoalCallback);
+  ros::Subscriber end_mission_sub = n.subscribe("/mission_accomplished", 1000, endMissionCallback);
 
   // Publishers
   ros::Publisher goal_pub = n.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 10);
   ros::Publisher task_pub = n.advertise<fuzzymar_multi_robot::action_task>("/treball", 10);
+  ros::Publisher cancel_navigation_pub = n.advertise<actionlib_msgs::GoalID>("move_base/cancel", 10);
+
 
   // Params
   n.getParam("robot_operation/kobuki_id", kobuki_id);   // "/node_name(indicated inside this code)/param_name" --> the first '/' depends if groupns is used or not
@@ -173,15 +170,25 @@ int main(int argc, char **argv)
     if(new_mission_state) // first time missions is updated
     {
 
-      threshold = getThreshold(); // the threshold is gotten
-
-      setProbabilities(); // the probabilities for each task are obtained
-
-      current_goal = setTaskObjective(); // set de current objective (task) for the robot
-
-      if(first_loop || (uint8_t)current_goal[0] != aux_current_goal)  // only publish new goal if is the first task or a new task assignment
+      if(end_mission) // mission is accomplished
       {
-        publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
+        ROS_INFO("Mission accomplished");
+        actionlib_msgs::GoalID cancel_msg;
+        cancel_navigation_pub.publish(cancel_msg);
+        
+      } else {
+
+        threshold = getThreshold(); // the threshold is gotten
+
+        setProbabilities(); // the probabilities for each task are obtained
+
+        current_goal = setTaskObjective(); // set de current objective (task) for the robot
+
+        if(first_loop || (uint8_t)current_goal[0] != aux_current_goal)  // only publish new goal if is the first task or a new task assignment
+        {
+          publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
+        }
+      
       }
 
       // ***************DUBUGGING*****************
@@ -198,19 +205,19 @@ int main(int argc, char **argv)
         }
 
         // Threshold
-        ROS_INFO("Threshold: %f", threshold);
+        ROS_DEBUG("Threshold: %f", threshold);
 
         // Probabilities vector
         for(int i = 0 ; i < probabilities.size() ; i++)
         {
-          ROS_INFO("ID: %i , STIMULOUS: %f , PROBABILITY: %f", (int)probabilities[i][0], probabilities[i][1], probabilities[i][2]);
+          ROS_DEBUG("ID: %i , STIMULOUS: %f , PROBABILITY: %f", (int)probabilities[i][0], probabilities[i][1], probabilities[i][2]);
         }
 
         // Current_goal vector
-        ROS_INFO("Current task -> ID: %i , X: %f , Y: %f , YAW: %f", (int)current_goal[0], current_goal[1],current_goal[2], current_goal[3]);
+        ROS_DEBUG("Current task -> ID: %i , X: %f , Y: %f , YAW: %f", (int)current_goal[0], current_goal[1],current_goal[2], current_goal[3]);
 
         // Current position
-        ROS_INFO("Current position -> X: %f, Y: %f", current_position.first, current_position.second);
+        ROS_DEBUG("Current position -> X: %f, Y: %f", current_position.first, current_position.second);
       }
 
       aux_current_goal = (uint8_t)current_goal[0];
@@ -344,7 +351,7 @@ void publishTask(ros::Publisher* task_pub)
   aux_task.sec = init_task.sec;
   aux_task.nsec = init_task.nsec;
 
-  ROS_INFO("kobuki_%i starts task %i at sec:%i nsec: %i", aux_task.id_kobuki, aux_task.id_task, aux_task.sec, aux_task.nsec);
+  ROS_DEBUG("kobuki_%i starts task %i at sec:%i nsec: %i", aux_task.id_kobuki, aux_task.id_task, aux_task.sec, aux_task.nsec);
 
   task_pub->publish(aux_task);
 }
