@@ -19,12 +19,12 @@
   <include file="$(find kobuki_multi_robot)/simulation/launch/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_c"/>
     <arg name="mission_label" value="$(arg mission_label)"/>
-  </include>
+  </include>-->
 
   <include file="$(find kobuki_multi_robot)/simulation/launch/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_d"/>
     <arg name="mission_label" value="$(arg mission_label)"/>
-  </include> -->
+  </include> 
 
   <include file="$(find kobuki_multi_robot)/simulation/launch/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_e"/>
@@ -50,13 +50,13 @@
     <arg name="robot_name" value="kobuki_c"/>
     <arg name="kobuki_id"  value="3"/>
     <arg name="mission_label" value="$(arg mission_label)"/>
-  </include>
+  </include> -->
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_d"/>
     <arg name="kobuki_id"  value="4"/>
     <arg name="mission_label" value="$(arg mission_label)"/>
-  </include> -->
+  </include> 
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_e"/>

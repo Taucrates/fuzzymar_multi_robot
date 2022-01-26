@@ -52,7 +52,6 @@ uint8_t status = 255; // objective status of the robot -> 1 == in the way to goa
 ros::Time init_task; // time at which current task begins
 
 // FLAGS
-bool first_loop = true;
 bool new_mission_state = false;
 bool way_to_task = false; // indicates if the robot is on the way of a task
 bool send_action_task = false; // allow to send action_task msg
@@ -89,6 +88,7 @@ void missionStateCallback(const fuzzymar_multi_robot::missionArray::ConstPtr& mi
   std::vector<float> aux_mission = {id_task, deadline, weight, x, y, doing_task, enable}; // In a 3D navigation have to add z pose
 
   missions.push_back(aux_mission);*/
+  missions.clear();
 
   Mission mission_data;
   
@@ -163,10 +163,14 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(10);
 
+  bool first_loop = true;
+
   while (ros::ok())
   {
-    // When new mission state is received by monitor
-    if(new_mission_state && first_loop)
+    
+    uint8_t aux_current_goal; 
+
+    if(new_mission_state) // first time missions is updated
     {
 
       threshold = getThreshold(); // the threshold is gotten
@@ -175,7 +179,10 @@ int main(int argc, char **argv)
 
       current_goal = setTaskObjective(); // set de current objective (task) for the robot
 
-      publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
+      if(first_loop || (uint8_t)current_goal[0] != aux_current_goal)  // only publish new goal if is the first task or a new task assignment
+      {
+        publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
+      }
 
       // ***************DUBUGGING*****************
 
@@ -206,13 +213,8 @@ int main(int argc, char **argv)
         ROS_INFO("Current position -> X: %f, Y: %f", current_position.first, current_position.second);
       }
 
-      //TODO
-      //TODO
-      //TODO
-      //TODO
-
+      aux_current_goal = (uint8_t)current_goal[0];
       new_mission_state = false;
-      first_loop = false;
 
     }
 
@@ -226,7 +228,8 @@ int main(int argc, char **argv)
     ros::spinOnce();
 
     loop_rate.sleep();
-    
+    first_loop = false;
+
   } 
 
   return 0;

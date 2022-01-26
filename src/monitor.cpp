@@ -19,6 +19,8 @@
 #include <vector>
 #include <iomanip>
 
+#define LOOPHZ 10
+
 // STRUCTS
 
 struct Mission {
@@ -45,6 +47,7 @@ std::vector<Mission> missions;
 void getMission(std::vector<Mission>* missions, const std::string& mission_path_file);
 void publishMission(ros::Publisher* mission_pub);
 void publishMarkers(ros::Publisher* vis_pub);
+void missionsUpdate();
 
 /********************************************************************************************
 *************************************** CALLBACKS *******************************************
@@ -89,7 +92,7 @@ int main(int argc, char **argv)
   std::string mission_path_file;
   n.getParam("/monitor/mission_path_file", mission_path_file);   // "/node_name(indicated inside this code)/param_name"
 
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(LOOPHZ);
 
   while (ros::ok())
   {
@@ -117,8 +120,11 @@ int main(int argc, char **argv)
         first_loop = false;
     }
 
+    missionsUpdate();
+
 		if(missions_update) // publish the vector missions when is updated
 		{
+
 			publishMission(&mission_pub);
 
 			for(int i = 0 ; i < missions.size() ; i++)
@@ -229,5 +235,22 @@ void publishMarkers(ros::Publisher* vis_pub)
     }
 
     vis_pub->publish(marker);
+
+}
+
+void missionsUpdate()
+{
+  for(uint16_t i = 0 ; i < missions.size() ; i++)
+  {
+    missions[i].weight = missions[i].weight - ((float)missions[i].doing_task * (1.0/(float)LOOPHZ)); // the weight is decreased due to robot/s work
+    ROS_INFO("Task %i has weight: %f", missions[i].id_task, missions[i].weight);
+    if(missions[i].weight <= 0)
+    {
+      missions.erase(missions.begin()+i);// eliminate this task of vector missions
+      i--; //because the vector missions decrease 1
+    }
+  }
+
+  missions_update = true;
 
 }
