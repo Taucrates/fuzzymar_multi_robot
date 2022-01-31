@@ -36,7 +36,7 @@ struct Mission {
 // FLAGS
 bool first_loop = true;
 bool missions_update = false;
-bool missions_updated = true;
+bool mission_finalized = false;
 
 // TOPICS
 std::string state_pub_topic = "/mission_state";
@@ -97,10 +97,11 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(LOOPHZ);
 
+
   while (ros::ok())
   {
 
-    if(first_loop){
+    if(first_loop){ // first loop
 
         ROS_DEBUG("Mission file executed: %s",mission_path_file.c_str());
         ROS_INFO("Press ENTER to begin");
@@ -120,33 +121,37 @@ int main(int argc, char **argv)
 
         ROS_INFO("Missions have been published for the first time");
 
+        mission_finalized = false;
         first_loop = false;
     }
 
-    if(missions_updated)
+    if(!mission_finalized) // vector missions is updated
     {
       missionsUpdate();
     }
 
-		if(missions_update) // publish the vector missions when is updated
+		if(missions_update) 
 		{
 
-			publishMission(&mission_pub);
+			publishMission(&mission_pub); // publish the vector missions when is updated
 
+      ROS_INFO("************************************************************************************************************");
 			for(int i = 0 ; i < missions.size() ; i++)
 			{
-				ROS_INFO("ID: %i , DD: %f , WEIGTH: %f , X: %f , Y: %f , Robots: %i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task);
+				ROS_INFO("ID: %i , DD: %f , WEIGHT: %f , X: %f , Y: %f , Robots: %i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task);
 			}
+      ROS_INFO("************************************************************************************************************");
 
       if(missions.size() == 0)
       {
         ROS_INFO("Mission accomplished");
         std_msgs::Empty end_msg;
         end_mission_pub.publish(end_msg);
-        missions_updated = false;
-      } else {
-        missions_updated = true;
-      }
+        
+        mission_finalized = true;
+        first_loop = true;
+      } 
+
       publishMarkers(&vis_pub);
 
 			missions_update = false;
@@ -259,7 +264,7 @@ void missionsUpdate()
 {
   for(uint16_t i = 0 ; i < missions.size() ; i++)
   {
-    missions[i].weight = missions[i].weight - ((float)missions[i].doing_task * (1.0/(float)LOOPHZ)); // the weight is decreased due to robot/s work
+    missions[i].weight -= (float)missions[i].doing_task * (1.0/(float)LOOPHZ); // the weight is decreased due to robot/s work
     ROS_DEBUG("Task %i has weight: %f", missions[i].id_task, missions[i].weight);
     if(missions[i].weight <= 0)
     {

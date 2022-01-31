@@ -6,6 +6,7 @@
  */
 
 #include "ros/ros.h"
+#include <std_srvs/Empty.h>
 #include "std_msgs/String.h"
 #include "std_msgs/Empty.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -22,19 +23,35 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>
+#include <random>
 
 #define DEBUGGING 0
 
 // STRUCTS
 
 struct Mission {
-    uint8_t id_task;
-    float deadline;
-		float weight;
-		float x;
-		float y;
-		uint8_t doing_task;
-    bool enable;
+  uint8_t id_task;
+  float deadline;
+  float weight;
+  float x;
+  float y;
+  uint8_t doing_task;
+  bool enable;
+};
+
+struct Probability {
+  uint8_t id_task;
+  float stimulous;
+  float probability;
+  float norm_probability;
+  float accumulative;
+};
+
+struct Current_goal {
+  uint8_t id_task;
+  float x;
+  float y;
+  float yaw;
 };
 
 // GLOBAL VARIABLES
@@ -44,14 +61,15 @@ std::string pose_sub_topic = "amcl_pose";
 std::string goal_status_sub_topic = "move_base/status";
 
 std::vector<Mission> missions; // vector where the tasks are saved {id_task, deadline, weight, x, y, doing_task, enable}
-std::vector<std::vector<float>> probabilities; // vector where probabilities are saved
-float threshold = 0.0; // threshold
+std::vector<Probability> probabilities; // vector where probabilities are saved
 std::pair<float, float> current_position; // current position of the robot
-std::vector<float> current_goal; // current task declared as objective {task_id, x, y, yaw}
+Current_goal current_goal; // current task declared as objective {task_id, x, y, yaw}
 
 uint8_t status = 255; // objective status of the robot -> 1 == in the way to goal // 3 == goal reached // 255 == no status 
 
 ros::Time init_task; // time at which current task begins
+
+
 
 // FLAGS
 bool new_mission_state = false;
@@ -63,10 +81,10 @@ bool end_mission = false;
 float distance(float x1, float y1, float x2, float y2); // calculate the distance between 2 points in 2D
 float getThreshold(); // get the threshold == max_dist(between tasks)/2
 float getStimulous(int task); // get the current robot stimulous for a given task
-void setProbabilities(); // build the probabilities vector {id_task, stimulous, probability}
-std::vector<float> setTaskObjective(); // return the global goal {task_id, x, y, yaw} to publish to /kobuki_x/move_base_simple/goal
+void setProbabilities(float thres); // build the probabilities vector {id_task, stimulous, probability}
+Current_goal setTaskObjective(float rand); // return the global goal {task_id, x, y, yaw} to publish to /kobuki_x/move_base_simple/goal
 
-void publishGoal(ros::Publisher* goal_pub, std::vector<float> goal);
+void publishGoal(ros::Publisher* goal_pub, Current_goal goal);
 void publishTask(ros::Publisher* task_pub);
 
 /********************************************************************************************
@@ -120,7 +138,7 @@ void statusGoalCallback(const actionlib_msgs::GoalStatusArray::ConstPtr& stat)
     init_task = stat -> header.stamp;
     send_action_task = true;
     way_to_task = false;
-    ROS_DEBUG("Task: %i initialized by Kobuki_%i at sec: %i  nsec: %i", (int)current_goal[0], kobuki_id, init_task.sec, init_task.nsec);
+    ROS_DEBUG("Task: %i initialized by Kobuki_%i at sec: %i  nsec: %i", current_goal.id_task, kobuki_id, init_task.sec, init_task.nsec);
   } else if(status == 1){
     way_to_task = true;
   }
@@ -129,7 +147,7 @@ void statusGoalCallback(const actionlib_msgs::GoalStatusArray::ConstPtr& stat)
 
 void endMissionCallback(const std_msgs::Empty::ConstPtr& end_msg)
 {
-  ROS_INFO("End msg received");
+  ROS_DEBUG("End msg received");
   end_mission = true;
 }
 /********************************************************************************************
@@ -142,6 +160,10 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "robot_operation");
 
   ros::NodeHandle n;
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(0,1.0);
 
   // Subscribers
   ros::Subscriber mission_sub = n.subscribe(state_sub_topic, 1000, missionStateCallback);
@@ -160,15 +182,28 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(10);
 
-  bool first_loop = true;
+  ros::service::waitForService("move_base/clear_costmaps");
+  ros::ServiceClient clearClient = n.serviceClient<std_srvs::Empty>("move_base/clear_costmaps");
+  std_srvs::Empty srv;
+
+  int loop_counter = 0;
+
+  bool first_loop = true; 
+
+  uint8_t aux_current_goal; 
+  uint8_t aux_task_number; // how much tasks are in missions vector
+  float threshold;
+  float random;
 
   while (ros::ok())
   {
-    
-    uint8_t aux_current_goal; 
 
-    if(new_mission_state) // first time missions is updated
+    if(new_mission_state) // when missions is updated
     {
+
+      if(first_loop){
+        threshold = getThreshold(); // the threshold is gotten
+      }
 
       if(end_mission) // mission is accomplished
       {
@@ -178,13 +213,21 @@ int main(int argc, char **argv)
         
       } else {
 
-        threshold = getThreshold(); // the threshold is gotten
+        
+        if(first_loop || aux_task_number != missions.size()){  // NOW ONLY RECALCULATE A POSSIBLE NEW GOAL WHEN A TASK IS END ¿¿¿¿¿¿ HOW TO DO ??????
 
-        setProbabilities(); // the probabilities for each task are obtained
+          setProbabilities(threshold); // the probabilities for each task are obtained
 
-        current_goal = setTaskObjective(); // set de current objective (task) for the robot
+          random = dis(gen);
 
-        if(first_loop || (uint8_t)current_goal[0] != aux_current_goal)  // only publish new goal if is the first task or a new task assignment
+          ROS_INFO("RANDOM: %f", random);
+
+          current_goal = setTaskObjective(random); // set de current objective (task) for the robot
+
+        }
+
+
+        if(first_loop || current_goal.id_task != aux_current_goal)  // only publish new goal if is the first task or a new task assignment
         {
           publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
         }
@@ -196,12 +239,12 @@ int main(int argc, char **argv)
       if(DEBUGGING)
       {
         // KOBUKI
-        ROS_INFO("kobuki_%i initialized", kobuki_id);
+        ROS_DEBUG("kobuki_%i initialized", kobuki_id);
 
         // Missions vector
         for(int i = 0 ; i < missions.size() ; i++)
         {
-          ROS_INFO("ID: %i , DD: %f , WEIGTH: %f , X: %f , Y: %f , Robots: %i , ENABLE(robots < ports):%i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, (int)missions[i].enable);
+          ROS_DEBUG("ID: %i , DD: %f , WEIGTH: %f , X: %f , Y: %f , Robots: %i , ENABLE(robots < ports):%i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, (int)missions[i].enable);
         }
 
         // Threshold
@@ -210,18 +253,21 @@ int main(int argc, char **argv)
         // Probabilities vector
         for(int i = 0 ; i < probabilities.size() ; i++)
         {
-          ROS_DEBUG("ID: %i , STIMULOUS: %f , PROBABILITY: %f", (int)probabilities[i][0], probabilities[i][1], probabilities[i][2]);
+          ROS_INFO("ID: %i , STIMULOUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task,  probabilities[i].stimulous,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
         }
 
         // Current_goal vector
-        ROS_DEBUG("Current task -> ID: %i , X: %f , Y: %f , YAW: %f", (int)current_goal[0], current_goal[1],current_goal[2], current_goal[3]);
+        ROS_DEBUG("Current task -> ID: %i , X: %f , Y: %f , YAW: %f", current_goal.id_task, current_goal.x,current_goal.y, current_goal.yaw);
 
         // Current position
         ROS_DEBUG("Current position -> X: %f, Y: %f", current_position.first, current_position.second);
       }
 
-      aux_current_goal = (uint8_t)current_goal[0];
+      aux_current_goal = current_goal.id_task;
+      aux_task_number = (uint8_t)missions.size();
       new_mission_state = false;
+
+      first_loop = false;
 
     }
 
@@ -232,10 +278,17 @@ int main(int argc, char **argv)
       send_action_task = false;
     }
 
+    if(loop_counter == 50){
+      
+      clearClient.call(srv);
+      loop_counter = 0;
+    }
+
     ros::spinOnce();
 
     loop_rate.sleep();
-    first_loop = false;
+
+    loop_counter++;
 
   } 
 
@@ -282,41 +335,60 @@ float getStimulous(int task)
   return stim;
 }
 
-void setProbabilities()
+void setProbabilities(float thres)
 {
   probabilities.clear();
 
-  float id, stimulous, probability;
+  uint8_t id;
+  float stim, prob, norm_prob, accumul;
+  float sum_prob, sum_norm;
+  sum_prob = 0.0;
+  sum_norm = 0.0;
 
   for(int i = 1 ; i <= missions.size() ; i++)
   {
-    id = (float)i;
-    stimulous = getStimulous(i); // i+1 because we give the id task not the vector position
-    probability = (stimulous*stimulous) / ((stimulous*stimulous) + (threshold*threshold));
+    id = i;
+    stim = getStimulous(i); // i+1 because we give the id task not the vector position
+    prob = (stim*stim) / ((stim*stim) + (thres*thres));
+    norm_prob = 0.0;
+    accumul = 0.0;
+    sum_prob += prob;
 
-    std::vector<float> aux_prob = {id , stimulous, probability};
+    Probability aux_prob = {id, stim, prob, norm_prob, accumul};
 
     probabilities.push_back(aux_prob);
+  }
+  
+  for(int j = 0 ; j < probabilities.size() ; j++) {
+    probabilities[j].norm_probability = probabilities[j].probability / sum_prob;
+    sum_norm += probabilities[j].norm_probability;
+    probabilities[j].accumulative = sum_norm;
   }
 
 }
 
-std::vector<float> setTaskObjective()
+Current_goal setTaskObjective(float rand)
 {
-  std::vector<float> aux_objective;
-  float id, x, y, yaw;
+  Current_goal aux_objective;
+  uint8_t id;
+  float x, y, yaw;
   float prob = 0.0;
-
+  
   for(int i = 0 ; i < probabilities.size() ; i ++)
   {
-    if(probabilities[i][2] > prob)
-    {
-      prob = probabilities[i][2];
+    if(rand <= probabilities[i].accumulative){
       id = missions[i].id_task;
       x = missions[i].x;
       y = missions[i].y;
       yaw = 0.0;  // TODO es ports per a cada missio
+      ROS_INFO("Kobuki_%i set task: %i", kobuki_id, id);
+      break; // out of loop
     }
+  }
+
+  for(int i = 0 ; i < probabilities.size() ; i++)
+  {
+    ROS_INFO("ID: %i , STIMULOUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task,  probabilities[i].stimulous,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
   }
 
   aux_objective = {id, x, y, yaw};
@@ -324,14 +396,14 @@ std::vector<float> setTaskObjective()
 
 }
 
-void publishGoal(ros::Publisher* goal_pub, std::vector<float> goal)
+void publishGoal(ros::Publisher* goal_pub, Current_goal goal)
 {
   geometry_msgs::PoseStamped goal_msg;
 
   goal_msg.header.frame_id = "map";
   goal_msg.header.stamp = ros::Time::now();
-  goal_msg.pose.position.x = goal[1];
-  goal_msg.pose.position.y = goal[2];
+  goal_msg.pose.position.x = goal.x;
+  goal_msg.pose.position.y = goal.y;
   goal_msg.pose.position.z = 0.0;
 
   goal_msg.pose.orientation.x = 0.0;
@@ -347,7 +419,7 @@ void publishTask(ros::Publisher* task_pub)
   fuzzymar_multi_robot::action_task aux_task;
 
   aux_task.id_kobuki = kobuki_id;
-  aux_task.id_task = (uint8_t)current_goal[0];
+  aux_task.id_task = current_goal.id_task;
   aux_task.sec = init_task.sec;
   aux_task.nsec = init_task.nsec;
 

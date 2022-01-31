@@ -4,7 +4,6 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
         - /Kobuki B1/B | Global goal1
         - /Kobuki C1/C | Global goal1
       Splitter Ratio: 0.5941176414489746
@@ -73,6 +72,61 @@ Visualization Manager:
             Expand Link Details: false
             Expand Tree: false
             Link Tree Style: Links in Alphabetic Order
+            base_footprint:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            base_scan:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            base_shell:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            caster_back_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            caster_front_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            cliff_sensor_front_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            cliff_sensor_left_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            cliff_sensor_right_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            gyro_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            wheel_left_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            wheel_right_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
           Name: A | kobuki_model
           Robot Description: kobuki_a/robot_description
           TF Prefix: kobuki_a
@@ -490,6 +544,61 @@ Visualization Manager:
             Expand Link Details: false
             Expand Tree: false
             Link Tree Style: Links in Alphabetic Order
+            base_footprint:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            base_scan:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            base_shell:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            caster_back_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            caster_front_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            cliff_sensor_front_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            cliff_sensor_left_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            cliff_sensor_right_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            gyro_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            wheel_left_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            wheel_right_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
           Name: D | kobuki_model
           Robot Description: kobuki_d/robot_description
           TF Prefix: kobuki_d
@@ -629,6 +738,61 @@ Visualization Manager:
             Expand Link Details: false
             Expand Tree: false
             Link Tree Style: Links in Alphabetic Order
+            base_footprint:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            base_scan:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            base_shell:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            caster_back_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            caster_front_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            cliff_sensor_front_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            cliff_sensor_left_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            cliff_sensor_right_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            gyro_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            wheel_left_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            wheel_right_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
           Name: E | kobuki_model
           Robot Description: kobuki_e/robot_description
           TF Prefix: kobuki_e
@@ -843,4 +1007,4 @@ Window Geometry:
     collapsed: true
   Width: 1366
   X: 1920
-  Y: 312
+  Y: 0

@@ -1,34 +1,34 @@
 <!--  Launches node to place kobukis properly inside the simulation 
       and navigation nodes -->
 <launch>
-  <arg name="mission_label" default="default"/>
+  <arg name="initial_pose_label" default="default"/>
 
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - -->
   <!-- Nodes to call service placing kobukis in simulation -->
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-  <include file="$(find kobuki_multi_robot)/simulation/launch/model_state_setter.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_a"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include>
 
-  <!-- <include file="$(find kobuki_multi_robot)/simulation/launch/model_state_setter.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_b"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include>
 
-  <include file="$(find kobuki_multi_robot)/simulation/launch/model_state_setter.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_c"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
-  </include> -->
-
-  <include file="$(find kobuki_multi_robot)/simulation/launch/model_state_setter.launch">
-    <arg name="robot_name" value="kobuki_d"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include> 
 
-  <include file="$(find kobuki_multi_robot)/simulation/launch/model_state_setter.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
+    <arg name="robot_name" value="kobuki_d"/>
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+  </include> 
+
+  <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_e"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include> 
 
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -37,30 +37,30 @@
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_a"/>
     <arg name="kobuki_id"  value="1"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include>
 
-  <!-- <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="kobuki_id"  value="2"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_c"/>
     <arg name="kobuki_id"  value="3"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
-  </include> -->
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+  </include> 
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_d"/>
     <arg name="kobuki_id"  value="4"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include> 
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_e"/>
     <arg name="kobuki_id"  value="5"/>
-    <arg name="mission_label" value="$(arg mission_label)"/>
+    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include> 
 </launch>

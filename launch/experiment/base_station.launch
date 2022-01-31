@@ -21,7 +21,7 @@
   </node>
 
   <!-- Monitor -->
-	<include file="$(find fuzzymar_multi_robot)/launch/monitor.launch">
+	<include file="$(find fuzzymar_multi_robot)/launch/nodes/monitor.launch">
 		<arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_file_name)"/>
 	</include>
 </launch>
