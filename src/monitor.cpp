@@ -20,7 +20,7 @@
 #include <vector>
 #include <iomanip>
 
-#define LOOPHZ 10
+#define LOOPHZ 5
 
 // STRUCTS
 
@@ -31,6 +31,7 @@ struct Mission {
 		float x;
 		float y;
 		uint8_t doing_task;
+    int utility;
 };
 
 // FLAGS
@@ -44,6 +45,7 @@ std::string state_pub_topic = "/mission_state";
 // Global Variable where save the mission
 //std::vector<std::vector<float>> missions; // vector where the tasks are saved {id_task, deadline, weight, x, y, z, doing_task}
 std::vector<Mission> missions;
+ros::Time aux_time;
 
 // Functions Declaration
 void getMission(std::vector<Mission>* missions, const std::string& mission_path_file);
@@ -61,7 +63,11 @@ void taskUpdateCallback(const fuzzymar_multi_robot::action_task::ConstPtr& task)
 	{
 		if((int)missions[i].id_task == (int)task->id_task)   // updating the doing_task variable
 		{
-			missions[i].doing_task += 1;   
+      if(task->active){
+			  missions[i].doing_task += 1; // A robot reach and begin to work in this task
+      } else {
+        missions[i].doing_task -= 1; // A robot leave the task
+      }
 		}
 	}
 
@@ -123,39 +129,41 @@ int main(int argc, char **argv)
 
         mission_finalized = false;
         first_loop = false;
-    }
-
-    if(!mission_finalized) // vector missions is updated
+    } 
+    else  // not the first loop
     {
-      missionsUpdate();
-    }
-
-		if(missions_update) 
-		{
-
-			publishMission(&mission_pub); // publish the vector missions when is updated
-
-      ROS_INFO("************************************************************************************************************");
-			for(int i = 0 ; i < missions.size() ; i++)
-			{
-				ROS_INFO("ID: %i , DD: %f , WEIGHT: %f , X: %f , Y: %f , Robots: %i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task);
-			}
-      ROS_INFO("************************************************************************************************************");
-
-      if(missions.size() == 0)
+      if(!mission_finalized) // vector missions is updated
       {
-        ROS_INFO("Mission accomplished");
-        std_msgs::Empty end_msg;
-        end_mission_pub.publish(end_msg);
-        
-        mission_finalized = true;
-        first_loop = true;
-      } 
+        missionsUpdate();
+      }
 
-      publishMarkers(&vis_pub);
+      if(missions_update) 
+      {
 
-			missions_update = false;
-		}
+        publishMission(&mission_pub); // publish the vector missions when is updated
+
+        ROS_INFO("************************************************************************************************************");
+        for(int i = 0 ; i < missions.size() ; i++)
+        {
+          ROS_INFO("ID: %i , DD: %f , WEIGHT: %f , X: %f , Y: %f , Robots: %i , UTILITY:%i", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
+        }
+        ROS_INFO("************************************************************************************************************");
+
+        if(missions.size() == 0)
+        {
+          ROS_INFO("Mission accomplished");
+          std_msgs::Empty end_msg;
+          end_mission_pub.publish(end_msg);
+          
+          mission_finalized = true;
+          first_loop = true;
+        } 
+
+        publishMarkers(&vis_pub);
+
+        missions_update = false;
+      }
+    }
 
 
     ros::spinOnce();
@@ -186,7 +194,7 @@ void getMission(std::vector<Mission>* missions, const std::string& mission_path_
         std::istringstream iss(line);
 				Mission aux_mission;
 				float task_id, z;
-				if (!(iss >> task_id >> aux_mission.deadline >> aux_mission.weight >> aux_mission.x >> aux_mission.y >> z)) { break; } // error
+				if (!(iss >> task_id >> aux_mission.deadline >> aux_mission.weight >> aux_mission.x >> aux_mission.y >> z >> aux_mission.utility)) { break; } // error
 				aux_mission.id_task = (uint8_t)task_id;
 				aux_mission.doing_task = 0;
 
@@ -212,6 +220,7 @@ void publishMission(ros::Publisher* mission_pub)
 			mission_line.x = missions[i].x;
 			mission_line.y = missions[i].y;
 			mission_line.doing_task = missions[i].doing_task;
+      mission_line.utility = missions[i].utility;
 
 			mission_buff.missions.push_back(mission_line);
 		}

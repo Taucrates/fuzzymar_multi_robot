@@ -2,6 +2,7 @@
 	<!-- Arguments -->
 	<arg name="robot_name" default="kobuki"/>
 	<arg name="kobuki_id" default="1"/>
+	<arg name="alpha_utility" default="2"/>
 	<arg name="initial_pose_label" default="default"/>
 
 	<!-- odom to map TF
@@ -28,5 +29,6 @@
 	<include file="$(find fuzzymar_multi_robot)/launch/nodes/robot_operation.launch" >
 		<arg name="robot_name" value="$(arg robot_name)"/>
 		<arg name="kobuki_id" value="$(arg kobuki_id)"/>
+		<arg name="alpha_utility" value="$(arg alpha_utility)"/>
 	</include> 
 </launch>
