@@ -59,5 +59,5 @@ add_executable(robot_operation src/robot_operation.cpp)
 target_link_libraries(robot_operation ${catkin_LIBRARIES})
 
 ## deps
-#add_dependencies(monitor monitor_generate_messages_cpp)
-#add_dependencies(robot_operation robot_operation_generate_messages_cpp)
+add_dependencies(monitor fuzzymar_multi_robot_generate_messages_cpp)
+add_dependencies(robot_operation fuzzymar_multi_robot_generate_messages_cpp)
