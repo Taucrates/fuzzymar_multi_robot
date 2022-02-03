@@ -3,8 +3,8 @@
  -->
 <launch>
   <arg name="rviz_file" default="fuzzymar_visualization"/>
-  <arg name="map_name" default="srvlab_small"/>
-  <arg name="map_file" default="$(find kobuki_multi_robot)/maps/$(arg map_name).yaml"/>
+  <arg name="map_name" default="srvlab"/>
+  <arg name="map_file" default="$(find fuzzymar_multi_robot)/maps/$(arg map_name).yaml"/>
   <arg name="mission_file_name" default="default.txt"/>
   
   <!-- World to map TF -->

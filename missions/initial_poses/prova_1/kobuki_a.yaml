@@ -4,5 +4,5 @@
 # initial_pose_a: float in radians (yaw)
 
 initial_pose_x: 0
-initial_pose_y: 0
+initial_pose_y: -2.4
 initial_pose_a: 0
