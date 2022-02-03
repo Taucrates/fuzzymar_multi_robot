@@ -12,7 +12,7 @@ case "$1" in
         exit 0
         ;;
     -i|--initial)
-        roslaunch kobuki_multi_robot kobuki_navigation.launch kobuki_id:=$KOBUKI_ID robot_name:=$KOBUKI_NAME initial_pose_label:=$2
+        roslaunch fuzzymar_multi_robot kobuki_navigation.launch kobuki_id:=$KOBUKI_ID robot_name:=$KOBUKI_NAME initial_pose_label:=$2
         exit 0
         ;;
     *)
