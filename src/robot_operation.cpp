@@ -151,19 +151,6 @@ void statusGoalCallback(const actionlib_msgs::GoalStatusArray::ConstPtr& stat)
     status = 255;
   }
 
-  /*if(status == 3 && way_to_task)
-  {
-    init_task = stat -> header.stamp;
-    send_action_task = true;
-    way_to_task = false;
-    ROS_DEBUG("Task: %i initialized by Kobuki_%i at sec: %i  nsec: %i", current_goal.id_task, kobuki_id, init_task.sec, init_task.nsec);
-  } else if(status == 1){
-    way_to_task = true;
-  } else if(status == 4){
-    force_clear_costmap = true;
-  } */
-
-  //ROS_INFO("status: %i", status);
 }
 
 void endMissionCallback(const std_msgs::Empty::ConstPtr& end_msg)
@@ -223,10 +210,7 @@ int main(int argc, char **argv)
   {
 
     // KOBUKI_STATE UPDATE
-    /*if(kobuki_state == Leave_task) { // After a task is ended kobuki should return to a Computing state
-      kobuki_state = Computing;
-      ROS_INFO("Computing");
-    } else */if(status == 3 && kobuki_state == Navigating) { // TODO es possible que haguem d'afegir status == 3 && kobuki_state == Computing per si sa tasca està a la posició actual del robot (no s'ha de moure per anar a la tasca)
+    if(status == 3 && kobuki_state == Navigating) { // TODO es possible que haguem d'afegir status == 3 && kobuki_state == Computing per si sa tasca està a la posició actual del robot (no s'ha de moure per anar a la tasca)
       kobuki_state = Start_task;
       //ROS_INFO("Start_task");
     } else if(status == 1 && kobuki_state == Working) {
@@ -246,8 +230,6 @@ int main(int argc, char **argv)
       //ROS_INFO("Computing");
     }
 
-    
-
     if(new_mission_state) // when missions is updated
     {
 
@@ -263,7 +245,6 @@ int main(int argc, char **argv)
         
       } else {
 
-        
         if(first_loop || aux_task_number != missions.size()){  // NOW ONLY RECALCULATE A POSSIBLE NEW GOAL WHEN A TASK IS END ¿¿¿¿¿¿ HOW TO DO ??????
 
           setProbabilities(threshold); // the probabilities for each task are obtained
@@ -320,14 +301,6 @@ int main(int argc, char **argv)
       first_loop = false;
 
     }
-
-    /*if(send_action_task) // send when robot arrives to the current task (goal reached)
-    {
-      // publish
-      publishTask(&task_pub); // publish {id_kobuki, id_task, sec, nsec}
-      ROS_INFO("Publish task at state: %i", kobuki_state);
-      send_action_task = false;
-    }*/
 
     if(kobuki_state == Start_task || kobuki_state == Leave_task) // send when robot arrives to the current task (goal reached)
     {
