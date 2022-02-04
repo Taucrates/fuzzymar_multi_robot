@@ -212,6 +212,7 @@ int main(int argc, char **argv)
     // KOBUKI_STATE UPDATE
     if(status == 3 && kobuki_state == Navigating) { // TODO es possible que haguem d'afegir status == 3 && kobuki_state == Computing per si sa tasca està a la posició actual del robot (no s'ha de moure per anar a la tasca)
       kobuki_state = Start_task;
+      init_task = ros::Time::now();
       //ROS_INFO("Start_task");
     } else if(status == 1 && kobuki_state == Working) {
       kobuki_state = Leave_task;

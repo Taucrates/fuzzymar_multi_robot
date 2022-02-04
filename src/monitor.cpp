@@ -46,8 +46,10 @@ std::string state_pub_topic = "/mission_state";
 //std::vector<std::vector<float>> missions; // vector where the tasks are saved {id_task, deadline, weight, x, y, z, doing_task}
 std::vector<Mission> missions;
 ros::Time aux_time;
+ros::Time auxil_time;
 
 // Functions Declaration
+double time2Float(ros::Time time);
 void getMission(std::vector<Mission>* missions, const std::string& mission_path_file);
 void publishMission(ros::Publisher* mission_pub);
 void publishMarkers(ros::Publisher* vis_pub);
@@ -103,6 +105,8 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(LOOPHZ);
 
+  
+
 
   while (ros::ok())
   {
@@ -135,6 +139,7 @@ int main(int argc, char **argv)
       if(!mission_finalized) // vector missions is updated
       {
         missionsUpdate();
+        aux_time = ros::Time::now();
       }
 
       if(missions_update) 
@@ -170,7 +175,7 @@ int main(int argc, char **argv)
 
 
     ros::spinOnce();
-
+    
     loop_rate.sleep();
   }
 
@@ -181,6 +186,14 @@ int main(int argc, char **argv)
 /********************************************************************************************
 *************************************** FUNCTIONS *******************************************
 ********************************************************************************************/
+
+double time2Float(ros::Time time)
+{
+  double timer = time.sec + time.nsec*(1.0/1000000000.0);
+  printf("Conversion: %f \n", timer);
+
+  return timer;
+}
 
 void getMission(std::vector<Mission>* missions, const std::string& mission_path_file)
 {
@@ -274,9 +287,18 @@ void publishMarkers(ros::Publisher* vis_pub)
 
 void missionsUpdate()
 {
+  ros::Time get_time;
+  //double time = time2Float(get_time);
+
   for(uint16_t i = 0 ; i < missions.size() ; i++)
   {
-    missions[i].weight -= (float)missions[i].doing_task * (1.0/(float)LOOPHZ); // the weight is decreased due to robot/s work
+    //missions[i].weight -= (float)missions[i].doing_task * (1.0/(float)LOOPHZ); // the weight is decreased due to robot/s work
+
+    get_time = ros::Time::now();
+    //time = time2Float(get_time);
+
+    missions[i].weight -= (float)missions[i].doing_task * (time2Float(get_time) - time2Float(aux_time));
+
     ROS_DEBUG("Task %i has weight: %f", missions[i].id_task, missions[i].weight);
     if(missions[i].weight <= 0)
     {
