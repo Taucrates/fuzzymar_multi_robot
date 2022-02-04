@@ -109,23 +109,23 @@ int main(int argc, char **argv)
 
     if(first_loop){ // first loop
 
-        ROS_DEBUG("Mission file executed: %s",mission_path_file.c_str());
-        ROS_INFO("Press ENTER to begin");
+        //printf("Mission file executed: %s\n",mission_path_file.c_str());
+        printf("Press ENTER to begin. \n");
         
         std::cin.getline(cmd, 1);
 
         getMission(& missions, mission_path_file);    // get the info of the current mission
 
-        for(int i = 0 ; i < missions.size() ; i++)
+        /*for(int i = 0 ; i < missions.size() ; i++)
         {
-          ROS_DEBUG("ID: %i , DD: %f , WEIGTH: %f , X: %f , Y: %f , Robots: %i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task);
-        }
+          printf("ID: %i , DD: %f , WEIGTH: %f , X: %f , Y: %f , Robots: %i ", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task);
+        }*/
 
         // VERY FIRST publish mission
         publishMission(&mission_pub);
         
 
-        ROS_INFO("Missions have been published for the first time");
+        printf("Missions have been published for the first time. \n");
 
         mission_finalized = false;
         first_loop = false;
@@ -142,16 +142,19 @@ int main(int argc, char **argv)
 
         publishMission(&mission_pub); // publish the vector missions when is updated
 
-        ROS_INFO("************************************************************************************************************");
+        printf("\n \n \n \n \n \n \n");
+        printf("+----+--------+--------+-------+-------+-----+-----+\n");
+        printf("| ID |   DD   | WEIGHT |   X   |   Y   | Rob |  U  |\n");
+        printf("+----+--------+--------+-------+-------+-----+-----+\n");
         for(int i = 0 ; i < missions.size() ; i++)
         {
-          ROS_INFO("ID: %i , DD: %f , WEIGHT: %f , X: %f , Y: %f , Robots: %i , UTILITY:%i", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
+          printf("| %2i | %6.2f | %5.2f  | %5.2f | %5.2f |  %1i  | %3i |\n", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
         }
-        ROS_INFO("************************************************************************************************************");
+        printf("+----+--------+--------+-------+-------+-----+-----+\n");
 
         if(missions.size() == 0)
         {
-          ROS_INFO("Mission accomplished");
+          printf("Mission accomplished\n");
           std_msgs::Empty end_msg;
           end_mission_pub.publish(end_msg);
           
