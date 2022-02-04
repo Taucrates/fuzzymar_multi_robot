@@ -78,7 +78,8 @@ Current_goal current_goal; // current task declared as objective {task_id, x, y,
 
 uint8_t status = 255; // objective status of the robot -> 1 == in the way to goal // 3 == goal reached // 255 == no status 
 
-ros::Time init_task; // time at which current task begins
+ros::Time init_task; // time at which the robot begins to work in the current task 
+ros::Time leave_task; // time at which the robot leaves the current task
 
 Kobuki_State kobuki_state = Computing;
 
@@ -88,10 +89,7 @@ uint8_t last_task_id;
 
 // FLAGS
 bool new_mission_state = false;
-bool way_to_task = false; // indicates if the robot is on the way of a task
-bool send_action_task = false; // allow to send action_task msg
 bool end_mission = false;
-bool force_clear_costmap = false; // indicates if have to clear the costmaps due to an error
 
 // FUNCTIONS DECLARATION
 float distance(float x1, float y1, float x2, float y2); // calculate the distance between 2 points in 2D
@@ -204,7 +202,7 @@ int main(int argc, char **argv)
   float threshold;
   float random;
 
-  ROS_INFO("Kobuki_%i has an alpha_utility of %i", kobuki_id, alpha_utility);
+  printf("\nKobuki_%i has an alpha_utility of %i\n", kobuki_id, alpha_utility);
 
   while (ros::ok())
   {
@@ -216,6 +214,7 @@ int main(int argc, char **argv)
       //ROS_INFO("Start_task");
     } else if(status == 1 && kobuki_state == Working) {
       kobuki_state = Leave_task;
+      leave_task = ros::Time::now();
       //ROS_INFO("Leave_task");
     } else if(status == 1) {
       kobuki_state = Navigating;
@@ -240,7 +239,7 @@ int main(int argc, char **argv)
 
       if(end_mission) // mission is accomplished
       {
-        ROS_INFO("Mission accomplished");
+        printf("Mission accomplished\n");
         actionlib_msgs::GoalID cancel_msg;
         cancel_navigation_pub.publish(cancel_msg);
         
@@ -251,8 +250,6 @@ int main(int argc, char **argv)
           setProbabilities(threshold); // the probabilities for each task are obtained
 
           random = dis(gen);
-
-          ROS_INFO("RANDOM: %f", random);
 
           current_goal = setTaskObjective(random); // set de current objective (task) for the robot
 
@@ -285,7 +282,7 @@ int main(int argc, char **argv)
         // Probabilities vector
         for(int i = 0 ; i < probabilities.size() ; i++)
         {
-          ROS_INFO("ID: %i , STIMULOUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task,  probabilities[i].stimulous,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
+          ROS_INFO("ID: %i , D_STIM:%f, U_STIM:%f, STIMULOUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task, probabilities[i].d_stimulous, probabilities[i].u_stimulous, probabilities[i].stimulous,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
         }
 
         // Current_goal vector
@@ -306,9 +303,7 @@ int main(int argc, char **argv)
     if(kobuki_state == Start_task || kobuki_state == Leave_task) // send when robot arrives to the current task (goal reached)
     {
       // publish
-      publishTask(&task_pub); // publish {id_kobuki, id_task, sec, nsec}
-      /*if(kobuki_state == Start_task){ROS_INFO("Publish Start_task");}
-      else{ROS_INFO("Publish Leave_task");} */
+      publishTask(&task_pub); // publish {id_kobuki, id_task, sec, nsec, active} --> active indicates if is starting (true) or leaving (false) the task
       
     }
 
@@ -322,7 +317,7 @@ int main(int argc, char **argv)
     }
 
     ros::spinOnce();
-    //ROS_INFO("________________________spinOnce %i", loop_counter);
+   
     loop_rate.sleep();
 
     loop_counter++;
@@ -361,7 +356,7 @@ float getThreshold()
   }
 
   float threshold = aux_thres/2;
-  //ROS_INFO("Threshold: %f", threshold);
+  
   return threshold;
 }
 
@@ -454,15 +449,10 @@ Current_goal setTaskObjective(float rand)
       x = missions[i].x;
       y = missions[i].y;
       yaw = 0.0;  // TODO es ports per a cada missio
-      //ROS_INFO("Kobuki_%i set task: %i", kobuki_id, id);
+      
       break; // out of loop
     }
   }
-
-  /*for(int i = 0 ; i < probabilities.size() ; i++)
-  {
-    ROS_INFO("ID: %i , D_STIM:%f, U_STIM:%f, STIMULOUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task, probabilities[i].d_stimulous, probabilities[i].u_stimulous, probabilities[i].stimulous,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
-  }*/
 
   aux_objective = {id, x, y, yaw};
   return aux_objective;
@@ -492,23 +482,23 @@ void publishTask(ros::Publisher* task_pub)
   fuzzymar_multi_robot::action_task aux_task;
 
   aux_task.id_kobuki = kobuki_id;
-  //aux_task.id_task = current_goal.id_task; // TODO millorar aquesta chapuzilla !!!!!!
-  aux_task.sec = init_task.sec;
-  aux_task.nsec = init_task.nsec;
+  
   if(kobuki_state == Start_task)
   {
+    aux_task.sec = init_task.sec;
+    aux_task.nsec = init_task.nsec;
     aux_task.active = true;
     aux_task.id_task = current_goal.id_task;  // TODO millorar aquesta chapuzilla !!!!!!
-    ROS_INFO("kobuki_%i starts task %i at sec:%i nsec: %i", aux_task.id_kobuki, aux_task.id_task, aux_task.sec, aux_task.nsec);
+    printf("\nKobuki_%i starts task %i at sec:%i nsec: %i\n", aux_task.id_kobuki, aux_task.id_task, aux_task.sec, aux_task.nsec);
   } else {
+    aux_task.sec = leave_task.sec;
+    aux_task.nsec = leave_task.nsec;
     aux_task.active = false;
     aux_task.id_task = last_task_id;  // TODO millorar aquesta chapuzilla !!!!!!
-    ROS_INFO("kobuki_%i leave task %i at sec:%i nsec: %i", aux_task.id_kobuki, aux_task.id_task, aux_task.sec, aux_task.nsec);
+    printf("\nKobuki_%i leave task %i at sec:%i nsec: %i\n", aux_task.id_kobuki, aux_task.id_task, aux_task.sec, aux_task.nsec);
   }
 
   last_task_id = current_goal.id_task;
-
-  //ROS_DEBUG("kobuki_%i starts task %i at sec:%i nsec: %i", aux_task.id_kobuki, aux_task.id_task, aux_task.sec, aux_task.nsec);
 
   task_pub->publish(aux_task);
 }
