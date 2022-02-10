@@ -12,7 +12,7 @@
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include>
 
-  <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
+  <!--<include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include>
@@ -20,7 +20,7 @@
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_c"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
-  </include> 
+  </include> -->
 
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_d"/>
@@ -30,7 +30,7 @@
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_e"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
-  </include> 
+  </include>
 
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - -->
   <!-- Navigation nodes                                    -->
@@ -42,7 +42,7 @@
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include>
 
-  <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
+  <!--<include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="kobuki_id"  value="2"/>
     <arg name="alpha_utility" value="$(arg alpha_utility)"/>
@@ -54,7 +54,7 @@
     <arg name="kobuki_id"  value="3"/>
     <arg name="alpha_utility" value="$(arg alpha_utility)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
-  </include> 
+  </include> -->
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_d"/>

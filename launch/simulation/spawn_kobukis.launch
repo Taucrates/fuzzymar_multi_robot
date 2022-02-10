@@ -7,7 +7,7 @@
     <arg name="initial_pose_x" value="0"/>
   </include>
   
-  <include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
+  <!--<include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="initial_pose_x" value="1"/>
   </include>
@@ -15,7 +15,7 @@
   <include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
     <arg name="robot_name" value="kobuki_c"/>
     <arg name="initial_pose_x" value="2"/>
-  </include>
+  </include>-->
 
   <include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
     <arg name="robot_name" value="kobuki_d"/>
