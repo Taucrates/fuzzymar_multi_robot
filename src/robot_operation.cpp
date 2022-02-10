@@ -14,8 +14,8 @@
 #include "actionlib_msgs/GoalStatus.h"
 #include "actionlib_msgs/GoalStatusArray.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
-#include <fuzzymar_multi_robot/mission.h>
-#include <fuzzymar_multi_robot/missionArray.h>
+#include <fuzzymar_multi_robot/task.h>
+#include <fuzzymar_multi_robot/taskArray.h>
 #include <fuzzymar_multi_robot/action_task.h>
 #include <stdio.h>
 #include <fstream>
@@ -30,7 +30,7 @@
 
 // STRUCTS
 
-struct Mission {
+struct Task {
   uint8_t id_task;
   float deadline;
   float weight;
@@ -71,7 +71,7 @@ std::string state_sub_topic = "/mission_state";
 std::string pose_sub_topic = "amcl_pose";
 std::string goal_status_sub_topic = "move_base/status";
 
-std::vector<Mission> missions; // vector where the tasks are saved {id_task, deadline, weight, x, y, doing_task, enable}
+std::vector<Task> missions; // vector where the tasks are saved {id_task, deadline, weight, x, y, doing_task, enable}
 std::vector<Probability> probabilities; // vector where probabilities are saved
 std::pair<float, float> current_position; // current position of the robot
 Current_goal current_goal; // current task declared as objective {task_id, x, y, yaw}
@@ -106,25 +106,25 @@ void publishTask(ros::Publisher* task_pub);
 *************************************** CALLBACKS *******************************************
 ********************************************************************************************/
 
-void missionStateCallback(const fuzzymar_multi_robot::missionArray::ConstPtr& mission)
+void missionStateCallback(const fuzzymar_multi_robot::taskArray::ConstPtr& mission)
 {
   //ROS_INFO("missionStateCallback");
   missions.clear();
 
-  Mission mission_data;
+  Task task_data;
   
   for(int i = 0 ; i < mission->vector_size ; i++)
   {
-    mission_data.id_task = mission->missions[i].id_task;
-    mission_data.deadline = mission->missions[i].deadline_task;
-    mission_data.weight = mission->missions[i].weight_task;
-    mission_data.x = mission->missions[i].x;
-    mission_data.y = mission->missions[i].y;
-    mission_data.doing_task = mission->missions[i].doing_task;
-    if(mission->missions[i].doing_task <= 4){mission_data.enable = true;}
-    mission_data.utility = mission->missions[i].utility;
+    task_data.id_task = mission->missions[i].id_task;
+    task_data.deadline = mission->missions[i].deadline_task;
+    task_data.weight = mission->missions[i].weight_task;
+    task_data.x = mission->missions[i].x;
+    task_data.y = mission->missions[i].y;
+    task_data.doing_task = mission->missions[i].doing_task;
+    if(mission->missions[i].doing_task <= 4){task_data.enable = true;}
+    task_data.utility = mission->missions[i].utility;
 
-    missions.push_back(mission_data);
+    missions.push_back(task_data);
   }
 
   new_mission_state = true;

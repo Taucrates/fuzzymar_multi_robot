@@ -8,8 +8,8 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Empty.h"
-#include <fuzzymar_multi_robot/mission.h>
-#include <fuzzymar_multi_robot/missionArray.h>
+#include <fuzzymar_multi_robot/task.h>
+#include <fuzzymar_multi_robot/taskArray.h>
 #include <fuzzymar_multi_robot/action_task.h>
 #include "visualization_msgs/MarkerArray.h"
 #include "visualization_msgs/Marker.h"
@@ -24,8 +24,9 @@
 
 // STRUCTS
 
-struct Mission {
+struct Task {
     uint8_t id_task;
+    int number_ports;
     float deadline;
 		float weight;
 		float x;
@@ -43,13 +44,13 @@ bool mission_finalized = false;
 std::string state_pub_topic = "/mission_state";
 
 // Global Variable where save the mission
-std::vector<Mission> missions;
+std::vector<Task> missions;
 ros::Time aux_time;
 ros::Time mission_time;
 
 // Functions Declaration
 double time2Float(ros::Time time);
-void getMission(std::vector<Mission>* missions, const std::string& mission_path_file);
+void getMission(std::vector<Task>* missions, const std::string& mission_path_file);
 void publishMission(ros::Publisher* mission_pub);
 void publishMarkers(ros::Publisher* vis_pub);
 void missionsUpdate();
@@ -91,7 +92,7 @@ int main(int argc, char **argv)
   ros::Subscriber task_sub = n.subscribe("/treball", 1000, taskUpdateCallback);
 
 	// Publishers
-  ros::Publisher mission_pub = n.advertise<fuzzymar_multi_robot::missionArray>(state_pub_topic, 10);
+  ros::Publisher mission_pub = n.advertise<fuzzymar_multi_robot::taskArray>(state_pub_topic, 10);
   ros::Publisher vis_pub = n.advertise<visualization_msgs::MarkerArray>( "visualization_marker_array", 1);
   ros::Publisher end_mission_pub = n.advertise<std_msgs::Empty>( "/mission_accomplished", 10);
 
@@ -112,7 +113,7 @@ int main(int argc, char **argv)
 
     if(first_loop){ // first loop
 
-        //printf("Mission file executed: %s\n",mission_path_file.c_str());
+        //printf("Task file executed: %s\n",mission_path_file.c_str());
         printf("\nPress ENTER to begin. \n");
         
         std::cin.getline(cmd, 1);
@@ -123,7 +124,7 @@ int main(int argc, char **argv)
         publishMission(&mission_pub);
         
 
-        printf("Missions have been published for the first time. \n");
+        printf("Mission has been published for the first time. \n");
 
         mission_time = ros::Time::now();
 
@@ -144,14 +145,14 @@ int main(int argc, char **argv)
         publishMission(&mission_pub); // publish the vector missions when is updated
 
         printf("\n \n \n \n \n \n \n");
-        printf("+----+--------+--------+-------+-------+-----+-----+\n");
-        printf("| ID |   DD   | WEIGHT |   X   |   Y   | Rob |  U  |\n");
-        printf("+----+--------+--------+-------+-------+-----+-----+\n");
+        printf("+----+-------+--------+--------+-------+-------+-----+-----+\n");
+        printf("| ID | Ports |   DD   | WEIGHT |   X   |   Y   | Rob |  U  |\n");
+        printf("+----+-------+--------+--------+-------+-------+-----+-----+\n");
         for(int i = 0 ; i < missions.size() ; i++)
         {
-          printf("| %2i | %6.2f | %5.2f  | %5.2f | %5.2f |  %1i  | %3i |\n", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
+          printf("| %2i |   %i   | %6.2f | %5.2f  | %5.2f | %5.2f |  %1i  | %3i |\n", missions[i].id_task, missions[i].number_ports, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
         }
-        printf("+----+--------+--------+-------+-------+-----+-----+\n");
+        printf("+----+-------+--------+--------+-------+-------+-----+-----+\n");
         printf("\nCurrent time: %6.3f secs\n", (double)(time2Float(ros::Time::now()) - time2Float(mission_time)));
 
         if(missions.size() == 0) // the mission is accomplished
@@ -192,7 +193,7 @@ double time2Float(ros::Time time)
   return timer;
 }
 
-void getMission(std::vector<Mission>* missions, const std::string& mission_path_file)
+void getMission(std::vector<Task>* missions, const std::string& mission_path_file)
 {
 
     // clearing mission vector
@@ -204,13 +205,13 @@ void getMission(std::vector<Mission>* missions, const std::string& mission_path_
     while (std::getline(inputFile, line))
     {
         std::istringstream iss(line);
-				Mission aux_mission;
+				Task aux_task;
 				float task_id, z;
-				if (!(iss >> task_id >> aux_mission.deadline >> aux_mission.weight >> aux_mission.x >> aux_mission.y >> z >> aux_mission.utility)) { break; } // error
-				aux_mission.id_task = (uint8_t)task_id;
-				aux_mission.doing_task = 0;
+				if (!(iss >> task_id >> aux_task.number_ports >> aux_task.deadline >> aux_task.weight >> aux_task.x >> aux_task.y >> z >> aux_task.utility)) { break; } // error
+				aux_task.id_task = (uint8_t)task_id; // this way because ifstream doesn't read sized variables (uint8_t, float32, etc)
+				aux_task.doing_task = 0;
 
-				missions->push_back(aux_mission);
+				missions->push_back(aux_task);
     }
     
 }
@@ -220,12 +221,13 @@ void publishMission(ros::Publisher* mission_pub)
 {
 
     // buffer to be published of 'mission.msg' type
-    fuzzymar_multi_robot::mission mission_line;
-		fuzzymar_multi_robot::missionArray mission_buff;
+    fuzzymar_multi_robot::task mission_line;
+		fuzzymar_multi_robot::taskArray mission_buff;
     
 		for(int i = 0 ; i < missions.size() ; i++)
 		{
 			mission_line.id_task = missions[i].id_task;
+      mission_line.number_ports = missions[i].number_ports;
 			mission_line.deadline_task = missions[i].deadline;
 			mission_line.weight_task = missions[i].weight;
 			mission_line.x = missions[i].x;
