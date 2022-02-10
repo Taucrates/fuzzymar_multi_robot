@@ -20,9 +20,12 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    global_goal.msg
-   mission.msg
-   missionArray.msg
+   task.msg
+   taskArray.msg
    action_task.msg
+   port.msg
+   portsOfTask.msg
+   portsOfTaskArray.msg
  )
 
 ## Generate added messages and services with any dependencies listed here
@@ -58,6 +61,10 @@ target_link_libraries(monitor ${catkin_LIBRARIES})
 add_executable(robot_operation src/robot_operation.cpp)
 target_link_libraries(robot_operation ${catkin_LIBRARIES})
 
+add_executable(task_ports src/task_ports.cpp)
+target_link_libraries(task_ports ${catkin_LIBRARIES})
+
 ## deps
 add_dependencies(monitor fuzzymar_multi_robot_generate_messages_cpp)
 add_dependencies(robot_operation fuzzymar_multi_robot_generate_messages_cpp)
+add_dependencies(task_ports fuzzymar_multi_robot_generate_messages_cpp)
