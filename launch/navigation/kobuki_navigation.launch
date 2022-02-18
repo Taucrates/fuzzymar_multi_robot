@@ -4,6 +4,7 @@
 	<arg name="kobuki_id" default="1"/>
 	<arg name="alpha_utility" default="2"/>
 	<arg name="initial_pose_label" default="default"/>
+	<arg name="using_ports" default="False"/>
 
 	<!-- odom to map TF
 	<node pkg="tf" type="static_transform_publisher" name="robot_to_map" args="$(arg init_pose_x) $(arg init_pose_y) 0.0 0.0 0.0 0.0 /map /$(arg robot_name)/odom 100"/>
@@ -15,10 +16,7 @@
 		<arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
 	</include>
 	
-	<!-- Kobuki move_base-->
-	<include file="$(find fuzzymar_multi_robot)/launch/navigation/move_base.launch" >
-		<arg name="robot_name" value="$(arg robot_name)"/>
-	</include>
+	
 
 	<!-- Velocitiy smoother -->
 	<include file="$(find kobuki_multi_robot)/launch/velocity_smoother.launch">
@@ -26,9 +24,34 @@
 	</include>
 
 	<!-- Robot Operation-->
-	<include file="$(find fuzzymar_multi_robot)/launch/nodes/robot_operation.launch" >
-		<arg name="robot_name" value="$(arg robot_name)"/>
-		<arg name="kobuki_id" value="$(arg kobuki_id)"/>
-		<arg name="alpha_utility" value="$(arg alpha_utility)"/>
-	</include> 
+	<group if="$(arg using_ports)">  <!-- We'll use ports so the robot_operation_ports.launch will be executed -->
+
+		<!-- Move_base-->
+		<include file="$(find fuzzymar_multi_robot)/launch/navigation/move_base_ports.launch" >
+			<arg name="robot_name" value="$(arg robot_name)"/>
+		</include>
+
+		<include file="$(find fuzzymar_multi_robot)/launch/nodes/robot_operation_ports.launch" >
+			<arg name="robot_name" value="$(arg robot_name)"/>
+			<arg name="kobuki_id" value="$(arg kobuki_id)"/>
+			<arg name="alpha_utility" value="$(arg alpha_utility)"/>
+		</include>
+
+	</group>
+
+	<group unless="$(arg using_ports)">  <!-- We won't use ports so the monitor.launch will be executed -->
+
+		<!-- Move_base-->
+		<include file="$(find fuzzymar_multi_robot)/launch/navigation/move_base.launch" >
+			<arg name="robot_name" value="$(arg robot_name)"/>
+		</include>
+
+		<include file="$(find fuzzymar_multi_robot)/launch/nodes/robot_operation.launch" >
+			<arg name="robot_name" value="$(arg robot_name)"/>
+			<arg name="kobuki_id" value="$(arg kobuki_id)"/>
+			<arg name="alpha_utility" value="$(arg alpha_utility)"/>
+		</include>
+
+	</group>
+		 
 </launch>

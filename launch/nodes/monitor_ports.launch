@@ -1,0 +1,13 @@
+<!--
+  Launch file to run monitor node. Reads a list of missions saved in a .txt file and publishes them to the topic (TODO) 
+  everytime a the 's' key is pressed... TODO.
+
+ -->
+<launch>
+  <arg name="mission_path_file" default="$(find fuzzymar_multi_robot)/missions/default.txt"/>
+  
+  <!-- Monitor -->
+  <node pkg="fuzzymar_multi_robot" type="monitor_ports" name="monitor_ports" output="screen" >
+    <param name="mission_path_file" type="str" value="$(arg mission_path_file)" />
+  </node>
+</launch>

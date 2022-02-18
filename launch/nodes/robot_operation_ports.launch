@@ -1,0 +1,16 @@
+<!--
+  TODO
+ -->
+<launch>
+  <arg name="robot_name" default="kobuki"/>
+  <arg name="kobuki_id" default="1"/>
+  <arg name="alpha_utility" default="2"/>  <!-- if alpha_utility = 0 only take cares about distance to obtain de stimulous -->
+
+  <!-- Multi master slave -->
+  <group ns="$(arg robot_name)">
+    <node pkg="fuzzymar_multi_robot" type="robot_operation_ports" name="robot_operation_ports" output="screen" >
+      <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />
+      <param name="alpha_utility" type="int" value="$(arg alpha_utility)" />
+    </node>
+  </group>
+</launch>

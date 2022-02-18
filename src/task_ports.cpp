@@ -10,9 +10,9 @@
 #include "std_msgs/Empty.h"
 #include "nav_msgs/OccupancyGrid.h"
 #include "geometry_msgs/Pose2D.h"
-#include <fuzzymar_multi_robot/task.h>
-#include <fuzzymar_multi_robot/taskArray.h>
-#include <fuzzymar_multi_robot/action_task.h>
+#include <fuzzymar_multi_robot/task_w_ports.h>
+#include <fuzzymar_multi_robot/task_w_portsArray.h>
+#include <fuzzymar_multi_robot/action_task_w_ports.h>
 #include "visualization_msgs/MarkerArray.h"
 #include "visualization_msgs/Marker.h"
 #include <stdio.h>
@@ -32,6 +32,7 @@ std::string state_sub_topic = "/mission_state";
 struct Port {
   float x;
   float y;
+  float yaw;
 };
 
 struct Task {
@@ -45,10 +46,10 @@ struct Task {
 std::vector<Task> missions;
 
 // Parameters with default values
-int number_ports = 6;
-float ports_dist = 0.3;  
+int number_ports = 4;
+float ports_dist = 0.35;  
 float robot_radius = 0.2;
-float inflation = 0.4;
+float inflation = 0.45;
 
 nav_msgs::OccupancyGrid map;
 nav_msgs::OccupancyGrid costmap;
@@ -60,8 +61,8 @@ bool got_mission = false;
 // FUNCTIONS DECLARATION
 geometry_msgs::Pose2D vector2cell(int aux_vector);
 int cell2vector(float x, float y);
-geometry_msgs::Pose2D vector2pose(int aux_vector);
-int pose2vector(float x, float y);
+geometry_msgs::Pose2D world2map(float x, float y);
+//int pose2vector(float x, float y);
 geometry_msgs::Pose2D taskConcentrationPoint(); // calculate the central point doing the average of all tasks position
 void setCellValue(geometry_msgs::Pose2D cell, int x, int y);
 void setInflation(geometry_msgs::Pose2D cell);
@@ -71,12 +72,13 @@ int numMaxPorts();
 bool collision(float x , float y); // comprove if a point is in an occupied cell
 void possiblePorts(); // erase all the impossible ports and decide the number of designed ports for each task, if it is possible
 void printDebug(int max_ports);
+void publishPorts(ros::Publisher* ports_pub);
 
 /********************************************************************************************
 *************************************** CALLBACKS *******************************************
 ********************************************************************************************/
 
-void missionsCallback(const fuzzymar_multi_robot::taskArray::ConstPtr& mission)
+void missionsCallback(const fuzzymar_multi_robot::task_w_portsArray::ConstPtr& mission)
 {
   
   missions.clear();
@@ -154,8 +156,13 @@ int main(int argc, char **argv)
   ros::Subscriber map_sub = n.subscribe("/map", 1000, mapCallback);
   
   // PUBLISHERS
-  ros::Publisher ports_pub = n.advertise<std_msgs::String>("/ports", 1000);
+  ros::Publisher ports_pub = n.advertise<fuzzymar_multi_robot::task_w_portsArray>("/ports", 1000);
   ros::Publisher costmap_pub = n.advertise<nav_msgs::OccupancyGrid>("/costmap_tomeu", 1000);
+
+  // PARAMS
+  n.getParam("/task_ports/num_ports", number_ports);   // "/node_name(indicated inside this code)/param_name" 
+
+  printf("\nTrying to assign %i ports per task.\n", number_ports);
 
   ros::Rate loop_rate(5);
 
@@ -198,6 +205,7 @@ int main(int argc, char **argv)
         printDebug(numMaxPorts());
       }
 
+      publishPorts(&ports_pub);
       got_mission = false;
       got_ports = true;
 
@@ -229,20 +237,28 @@ geometry_msgs::Pose2D vector2cell(int aux_vector)
 
 int cell2vector(float x, float y)
 {
-  int i = abs(x * costmap.info.width) + y;
+  int i = abs(x * costmap.info.width) + abs(y);
 
   return i;
 }
 
-geometry_msgs::Pose2D vector2pose(int aux_vector)
+geometry_msgs::Pose2D world2map(float x , float y) //for row-major order of the OccupancyGrid format
 {
+  geometry_msgs::Pose2D pose;
 
+
+  pose.x = floor((x - costmap.info.origin.position.x) / costmap.info.resolution);
+  pose.y = floor((y - costmap.info.origin.position.y) / costmap.info.resolution);
+  //pose.x = costmap.info.width*costmap.info.resolution + (costmap.info.origin.position.x - x);
+  //pose.y = costmap.info.height*costmap.info.resolution + (costmap.info.origin.position.y - y);
+
+  return pose;
 }
 
-int pose2vector(float x, float y)
+/*int pose2vector(float x, float y)
 {
 
-}
+}*/
 
 geometry_msgs::Pose2D taskConcentrationPoint()
 {
@@ -290,7 +306,7 @@ void setInflation(geometry_msgs::Pose2D cell)
 
   for(int x = 0 ; x <= cells_dist ; x++)
   {
-    if(x < cells_dist/2)
+    if(x < cells_dist/2) // this if else construction give "circular" form to our inflation
     {
       for(int y = 0 ; y <= cells_dist ; y++)
       {
@@ -311,14 +327,6 @@ void setInflation(geometry_msgs::Pose2D cell)
       loop++;
     }
   }
-
-  /*for(int x = cell.x - cells_dist ; x <= cell.x + cells_dist ; x++)
-  {
-    for(int y = int(cell.y - ((cells_dist - a saber)/2)) ; y <= cell.y + ((cells_dist - a saber)/2) ; y++)
-    {
-
-    }
-  } */
 
 }
 
@@ -346,6 +354,7 @@ void getPorts()
 
       missions[i].ports[j].x = missions[i].x + (ports_dist + robot_radius) * sin(deg*PI/180);
       missions[i].ports[j].y = missions[i].y + (ports_dist + robot_radius) * cos(deg*PI/180);
+      missions[i].ports[j].yaw = atan2((missions[i].y - missions[i].ports[j].y) , (missions[i].x - missions[i].ports[j].x));
 
     }
     //ROS_INFO("____________________Task %i has %i ports", missions[i].id_task, missions[i].ports.size());
@@ -366,7 +375,7 @@ int numMaxPorts()
         
       }
     }
-    ROS_INFO("Task %i has %i ports", missions[i].id_task, num_ports);
+    //ROS_INFO("Task %i has %i ports", missions[i].id_task, num_ports);
     
   }
 
@@ -375,13 +384,19 @@ int numMaxPorts()
 
 bool collision(float x , float y)
 {
-  ROS_INFO(" Comprovacio port localitzat a x: %5.2f y: %5.2f", x , y);
-  /*if(costmap.data[pose2vector(x , y)] > 0)
+  
+  geometry_msgs::Pose2D map_pose = world2map(x , y);
+
+  //ROS_INFO(" Comprovacio port localitzat a x: %5.2f y: %5.2f", x , y);
+  //ROS_INFO("                      mapa-> a x: %5.2f y: %5.2f", map_pose.x , map_pose.y);
+
+  int8_t cost = costmap.data[map_pose.x + map_pose.y * (costmap.info.width)];
+  if (cost != 0 && cost != -1 && cost != 255) // free && unknown
   {
-    printf("Ocupat\n");
+    //printf("                Ocupat\n");
     return true;
-  }*/
-  printf("Viable\n");
+  }
+  //printf("                Viable\n");
   return false;
 }
 
@@ -390,7 +405,7 @@ void possiblePorts()
   for(int i = 0 ; i < missions.size() ; i++)
   {
 
-    for(int j = 0 ; j < missions[i].number_ports ; j++)
+    for(int j = 0 ; j < missions[i].ports.size() ; j++)
     {
       if(collision(missions[i].ports[j].x, missions[i].ports[j].y))
       {
@@ -405,41 +420,83 @@ void possiblePorts()
 
 void printDebug(int max_ports)
 {
-  printf("+------+------------------+");
+  printf("+------+------------------++");
   for(int i = 0 ; i < max_ports ; i++)
   {
-    printf("------------------+");
+    printf("-----------------------------+");
   }
   printf("\n");
   
-  printf("|  ID  |     LOCATION     |");
+  printf("|  ID  |     LOCATION     ||");
   for(int i = 1 ; i <= max_ports ; i++)
   {
-    printf("      PORT %i      |", i);
+    printf("           PORT  %i           |", i);
   }
   printf("\n");
 
-  printf("+------+------------------+");
+  printf("+------+------------------++");
   for(int i = 0 ; i < max_ports ; i++)
   {
-    printf("------------------+");
+    printf("-----------------------------+");
   }
   printf("\n");
 
   for(int i = 0 ; i < missions.size() ; i++)
   {
-    printf("|  %2i  | x:%5.2f  y:%5.2f |", missions[i].id_task, missions[i].x, missions[i].y);
+    printf("|  %2i  | x:%5.2f  y:%5.2f ||", missions[i].id_task, missions[i].x, missions[i].y);
 
     for(int j = 0 ; j < max_ports ; j++)
     {
-      printf(" x:%5.2f  y:%5.2f |", missions[i].ports[j].x, missions[i].ports[j].y);
+      if(j < missions[i].ports.size())
+      {
+        printf(" x:%5.2f  y:%5.2f  yaw:%5.2f |", missions[i].ports[j].x, missions[i].ports[j].y, missions[i].ports[j].yaw);
+      } else {
+        printf("                             |");
+      }
+      
     }
     printf("\n");
   }
-  printf("+------+------------------+");
+  printf("+------+------------------++");
   for(int i = 0 ; i < max_ports ; i++)
   {
-    printf("------------------+");
+    printf("-----------------------------+");
   }
   printf("\n");
+}
+
+void publishPorts(ros::Publisher* ports_pub)
+{
+
+    // buffer to be published of 'mission.msg' type
+    fuzzymar_multi_robot::port port_aux;
+    fuzzymar_multi_robot::task_w_ports mission_line;
+		fuzzymar_multi_robot::task_w_portsArray mission_buff;
+    
+		for(int i = 0 ; i < missions.size() ; i++)
+		{
+      mission_line.ports.clear();
+      
+			mission_line.id_task = missions[i].id_task;
+      mission_line.number_ports = missions[i].number_ports;
+			mission_line.x = missions[i].x;
+			mission_line.y = missions[i].y;
+
+      for(int j = 0 ; j < missions[i].ports.size() ; j++)
+      {
+        port_aux.x = missions[i].ports[j].x;
+        port_aux.y = missions[i].ports[j].y;
+        port_aux.yaw = missions[i].ports[j].yaw;
+        port_aux.id_port = j+1;
+        port_aux.id_kobuki = 0;  // means any kobuki willing this port
+
+        mission_line.ports.push_back(port_aux);
+      }
+
+			mission_buff.missions.push_back(mission_line);
+		}
+    
+		mission_buff.vector_size = missions.size();
+   
+    ports_pub->publish(mission_buff);
 }

@@ -11,12 +11,12 @@
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="log">
 
       <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
-      <rosparam file="$(find fuzzymar_multi_robot)/config/costmap_common_params/$(arg robot_name).yaml" command="load" ns="global_costmap" />
-      <rosparam file="$(find fuzzymar_multi_robot)/config/costmap_common_params/$(arg robot_name).yaml" command="load" ns="local_costmap" /> 
-      <rosparam file="$(find fuzzymar_multi_robot)/config/local_costmap_params.yaml" command="load" />
-      <rosparam file="$(find fuzzymar_multi_robot)/config/global_costmap_params.yaml" command="load" />
-      <rosparam file="$(find fuzzymar_multi_robot)/config/move_base_params.yaml" command="load" />
-      <rosparam file="$(find fuzzymar_multi_robot)/config/dwa_local_planner_params.yaml" command="load" />
+      <rosparam file="$(find fuzzymar_multi_robot)/config/ports/costmap_common_params/$(arg robot_name).yaml" command="load" ns="global_costmap" />
+      <rosparam file="$(find fuzzymar_multi_robot)/config/ports/costmap_common_params/$(arg robot_name).yaml" command="load" ns="local_costmap" /> 
+      <rosparam file="$(find fuzzymar_multi_robot)/config/ports/local_costmap_params.yaml" command="load" />
+      <rosparam file="$(find fuzzymar_multi_robot)/config/ports/global_costmap_params.yaml" command="load" />
+      <rosparam file="$(find fuzzymar_multi_robot)/config/ports/move_base_params.yaml" command="load" />
+      <rosparam file="$(find fuzzymar_multi_robot)/config/ports/dwa_local_planner_params.yaml" command="load" />
       
 
       <param name="controller_frequency" value="10.0" />

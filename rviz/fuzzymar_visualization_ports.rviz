@@ -3,9 +3,7 @@ Panels:
     Help Height: 78
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /Kobuki B1/B | Global goal1
-        - /Kobuki C1/C | Global goal1
+      Expanded: ~
       Splitter Ratio: 0.5941176414489746
     Tree Height: 323
   - Class: rviz/Selection
@@ -24,7 +22,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: B | LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -246,7 +244,7 @@ Visualization Manager:
           Head Length: 0.30000001192092896
           Head Radius: 0.10000000149011612
           Name: A | Global goal
-          Shaft Length: 1
+          Shaft Length: 0.4000000059604645
           Shaft Radius: 0.05000000074505806
           Shape: Arrow
           Topic: /kobuki_a/move_base_simple/goal
@@ -440,7 +438,7 @@ Visualization Manager:
           Head Length: 0.30000001192092896
           Head Radius: 0.10000000149011612
           Name: B | Global goal
-          Shaft Length: 1
+          Shaft Length: 0.4000000059604645
           Shaft Radius: 0.05000000074505806
           Shape: Arrow
           Topic: /kobuki_b/move_base_simple/goal
@@ -634,7 +632,7 @@ Visualization Manager:
           Head Length: 0.30000001192092896
           Head Radius: 0.10000000149011612
           Name: C | Global goal
-          Shaft Length: 1
+          Shaft Length: 0.4000000059604645
           Shaft Radius: 0.05000000074505806
           Shape: Arrow
           Topic: /kobuki_c/move_base_simple/goal
@@ -773,7 +771,7 @@ Visualization Manager:
           Head Length: 0.30000001192092896
           Head Radius: 0.10000000149011612
           Name: D | Global goal
-          Shaft Length: 1
+          Shaft Length: 0.4000000059604645
           Shaft Radius: 0.05000000074505806
           Shape: Arrow
           Topic: /kobuki_d/move_base_simple/goal
@@ -912,7 +910,7 @@ Visualization Manager:
           Head Length: 0.30000001192092896
           Head Radius: 0.10000000149011612
           Name: E | Global goal
-          Shaft Length: 1
+          Shaft Length: 0.4000000059604645
           Shaft Radius: 0.05000000074505806
           Shape: Arrow
           Topic: /kobuki_e/move_base_simple/goal
@@ -939,7 +937,7 @@ Visualization Manager:
       Marker Topic: visualization_marker_array
       Name: MarkerArray
       Namespaces:
-        {}
+        tasks: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -970,16 +968,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 10.758169174194336
+      Distance: 9.702509880065918
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.8583197593688965
-        Y: -0.4362582564353943
-        Z: 1.9549930095672607
+        X: 3.6895148754119873
+        Y: -1.7706266641616821
+        Z: 1.9548254013061523
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

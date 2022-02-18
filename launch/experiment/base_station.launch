@@ -6,22 +6,48 @@
   <arg name="map_name" default="srvlab_clean"/>
   <arg name="map_file" default="$(find fuzzymar_multi_robot)/maps/$(arg map_name).yaml"/>
   <arg name="mission_file_name" default="default.txt"/>
+  <arg name="using_ports" default="False"/>
+  <arg name="num_ports" default="5"/>
   
   <!-- World to map TF -->
   <!-- subterraneo args="1.95 22.85 0.0 -3.10159265359 0.0 0.0 /world /map 1"-->
   <!-- srvlab args="1.0 3.0 0.0 0.0 0.0 0.0 /world /map 100"-->
   <!--<node pkg="tf" type="static_transform_publisher" name="world_to_map" args="0.0 -2.4 0.0 0.0 0.0 0.0 /world /map 1"/>-->
-
-  <!-- RVIZ -->    
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find fuzzymar_multi_robot)/rviz/$(arg rviz_file).rviz" output="log"/>
   
   <!-- Map Server (publish the map)-->
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
     <param name="frame_id" value="map" />
   </node>
 
-  <!-- Monitor -->
-	<include file="$(find fuzzymar_multi_robot)/launch/nodes/monitor.launch">
-		<arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_file_name)"/>
-	</include>
+  <!-- With Ports -->
+  <group if="$(arg using_ports)">  <!-- We'll use ports so the monitor_ports.launch & task_ports.launch will be executed -->
+
+    <!-- RVIZ -->    
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find fuzzymar_multi_robot)/rviz/$(arg rviz_file)_ports.rviz" output="log"/>
+
+    <!-- Monitor -->
+    <include file="$(find fuzzymar_multi_robot)/launch/nodes/monitor_ports.launch">
+		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_file_name)"/>
+	  </include>
+
+    <!-- Task Ports -->
+    <include file="$(find fuzzymar_multi_robot)/launch/nodes/task_ports.launch">
+		  <arg name="num_ports" value="$(arg num_ports)"/>
+	  </include>
+
+  </group>
+
+  <!-- NO Ports -->
+  <group unless="$(arg using_ports)">  <!-- We won't use ports so the monitor.launch will be executed -->
+
+    <!-- RVIZ -->    
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find fuzzymar_multi_robot)/rviz/$(arg rviz_file).rviz" output="log"/>
+
+    <!-- Monitor -->
+    <include file="$(find fuzzymar_multi_robot)/launch/nodes/monitor.launch">
+		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_file_name)"/>
+	  </include>
+
+  </group>
+
 </launch>
