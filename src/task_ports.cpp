@@ -208,6 +208,7 @@ int main(int argc, char **argv)
       publishPorts(&ports_pub);
       got_mission = false;
       got_ports = true;
+      ros::shutdown(); //kill the node because all work is done
 
     }
 
