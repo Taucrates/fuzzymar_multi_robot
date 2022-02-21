@@ -32,6 +32,7 @@
 
 #define DEBUGGING 0
 #define CLEAR_COSTMAP 0
+#define TOTAL_ROBOTS 5
 
 // STRUCTS
 
@@ -96,16 +97,20 @@ uint8_t last_task_id;
 
 std::vector<uint8_t> ports_priority;
 
+float min_port_stim = 0.8; // min_value at which portstimulous begin
+
 
 
 // FLAGS
 bool new_mission_state = false;
 bool end_mission = false;
 bool port_assigned = false;
-bool published_task = false;
+bool calculated_task = false;
 
 // FUNCTIONS DECLARATION
 float distance(float x1, float y1, float x2, float y2); // calculate the distance between 2 points in 2D
+bool disponiblePorts(); // disponible ports comprovation
+int totalNumPorts(); // counts the total num of ports assigned, by task_ports node, in the mission
 float getThreshold(); // get the threshold == max_dist(between tasks)/2
 float getStimulous(int task); // get the current robot stimulous for a given task
 float getUtilityStimulous(int task); // get the utility stimulous
@@ -161,7 +166,7 @@ void missionStateCallback(const fuzzymar_multi_robot::task_w_portsArray::ConstPt
 
       if(mission->missions[i].ports[j].id_kobuki == kobuki_id) //means that port is assigned to the robot
       {
-        if(/*published_task && */(current_port.x != aux_port.x || current_port.y != aux_port.y)) // when a new port is assigned activate flag to publish new port/goal
+        if(/*calculated_task && */(current_port.x != aux_port.x || current_port.y != aux_port.y)) // when a new port is assigned activate flag to publish new port/goal
         {
 
           current_port.id_port = aux_port.id_port;
@@ -257,7 +262,9 @@ int main(int argc, char **argv)
 
   bool first_loop = true; 
 
+  uint8_t count_no_port_assigned_msg = 0;
   bool recalculate = false;
+  bool disponible_ports = true;
 
   uint8_t aux_current_goal; 
   uint8_t aux_current_port;
@@ -275,7 +282,7 @@ int main(int argc, char **argv)
       kobuki_state = Start_task;
       init_task = ros::Time::now();
       //ROS_INFO("Start_task");
-    } else if(status == 1 && kobuki_state == Working) {
+    } else if((status == 1 && kobuki_state == Working) || (status == 1 && kobuki_state == Start_task)) {
       kobuki_state = Leave_task;
       leave_task = ros::Time::now();
       //ROS_INFO("Leave_task");
@@ -295,20 +302,31 @@ int main(int argc, char **argv)
 
     if(new_mission_state) // when missions is updated
     {
-
+      
       if(first_loop){
         threshold = getThreshold(); // the threshold is gotten
       }
 
-      if(end_mission) // mission is accomplished
+      if(!disponible_ports)
       {
-        printf("Mission accomplished\n");
+        printf("Kobuki_%i has not any disponible port. The navigation is stopped waiting for possible ports.\n", kobuki_id);
         actionlib_msgs::GoalID cancel_msg;
         cancel_navigation_pub.publish(cancel_msg);
+        recalculate = false;
+        //disponible_ports = true;
+        
+      }
+
+      if(end_mission || (!disponible_ports && totalNumPorts() < TOTAL_ROBOTS)) // mission is accomplished
+      {
+        printf("Kobuki_%i finish their mission\n", kobuki_id);
+        actionlib_msgs::GoalID cancel_msg;
+        cancel_navigation_pub.publish(cancel_msg);
+        ros::shutdown();
         
       } else {
 
-        if(first_loop || aux_task_number != missions.size() /*|| recalculate*/){  // NOW ONLY RECALCULATE A POSSIBLE NEW GOAL WHEN A TASK IS END ¿¿¿¿¿¿ HOW TO DO ??????
+        if(first_loop || aux_task_number != missions.size() || recalculate){  // NOW ONLY RECALCULATE A POSSIBLE NEW GOAL WHEN A TASK IS END ¿¿¿¿¿¿ HOW TO DO ??????
 
           setProbabilities(threshold); // the probabilities for each task are obtained
 
@@ -319,16 +337,18 @@ int main(int argc, char **argv)
           setPortPriority();
 
           publishTaskObjective(&task_ports_pub);
+          if(recalculate){printf("Kobuki_%i ***recalculate*** the task and port.\n", kobuki_id);}
 
-          //recalculate = false;
+          disponible_ports = disponiblePorts();
+          recalculate = false;
 
         }
 
 
         if((first_loop || current_goal.id_task != aux_current_goal))  // only publish new goal if is the first task or a new task assignment (avoiding republish the same goal/task)
         {
-          publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
-          published_task = true;  
+          //publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
+          calculated_task = true;  
           //port_assigned = false;  
         } else if(port_assigned)  // only publish new goal if is the first task or a new task assignment
         {
@@ -336,14 +356,23 @@ int main(int argc, char **argv)
           publishPortGoal(&goal_pub, current_port); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
 
           port_assigned = false;
-          published_task = false;
+          calculated_task = false;
+          //count_recalculate = 0;
 
-        } /*else if (published_task && !port_assigned) // to avoid the robot try to go to a task without available ports
+        } else if (calculated_task && !port_assigned) // to avoid the robot try to go to a task without available ports (robot doesn't has a port assigned)
         {
-          
-          recalculate = true;
+          count_no_port_assigned_msg++;
 
-        }*/
+          if(count_no_port_assigned_msg > 5) // in that point we should have been received a port assignation, if not robot has to recalculate
+          {
+            printf("Kobuki_%i has to recalculate the task and port.\n", kobuki_id);
+            recalculate = true;
+            count_no_port_assigned_msg = 0;
+            //count_recalculate++;
+          }
+          
+          
+        }
       
       }
 
@@ -385,7 +414,7 @@ int main(int argc, char **argv)
 
     }
 
-    if(kobuki_state == Start_task || kobuki_state == Leave_task) // send when robot arrives to the current task (goal reached)
+    if(kobuki_state == Start_task || kobuki_state == Leave_task) // send when robot arrives to the current task (goal reached) or leave a task
     {
       // publish
       publishTask(&task_pub); // publish {id_kobuki, id_task, sec, nsec, active} --> active indicates if is starting (true) or leaving (false) the task
@@ -396,7 +425,8 @@ int main(int argc, char **argv)
       
       clearClient.call(srv);
 
-      if(kobuki_state == Stuck){publishGoal(&goal_pub, current_goal);} // republish the objective
+      //if(kobuki_state == Stuck){publishGoal(&goal_pub, current_goal);} // republish the objective
+      if(kobuki_state == Stuck){publishPortGoal(&goal_pub, current_port);}
       
       loop_counter = 0;
     }
@@ -420,6 +450,37 @@ float distance(float x1, float y1, float x2, float y2)
 {
   float dist = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
   return dist;
+}
+
+bool disponiblePorts()
+{
+  for(int i = 0 ; i < missions.size() ; i++)
+  {
+    for(int j = 0 ; j < missions[i].ports.size() ; j++)
+    {
+      if(missions[i].ports[j].id_kobuki == 0 || missions[i].ports[j].id_kobuki == kobuki_id) // can consider the port occupied by the own robot as a free port
+      {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+int totalNumPorts()
+{
+  int num_ports = 0;
+
+  for(int i = 0 ; i < missions.size() ; i++)
+  {
+    for(int j = 0 ; j < missions[i].ports.size() ; j++)
+    {
+      num_ports++;
+    }
+  }
+
+  return num_ports;
 }
 
 float getThreshold()
@@ -482,6 +543,43 @@ float getUtilityStimulous(int task)
   return stim;
 }
 
+float getPortsStimulous(int task)
+{
+  float stim = 0.0;
+  uint8_t free_ports = 0;
+  int tot_ports = missions[task-1].ports.size();
+
+  for(int i = 0 ; i < tot_ports ; i++)
+  {
+    if(missions[task-1].ports[i].id_kobuki == 0 || missions[task-1].ports[i].id_kobuki == kobuki_id) // can be considered if port is occupied by the own robot, the port is free
+    {
+      free_ports++;
+    }
+  }
+
+  /*if(missions[task-1].ports.size() - occupied_ports == 3 && missions[task-1].ports.size() > 3)
+  {
+    stim = 0.95;
+  } else if(missions[task-1].ports.size() - occupied_ports == 2 && missions[task-1].ports.size() > 2)
+  {
+    stim = 0.9;
+  } else if(missions[task-1].ports.size() - occupied_ports == 1 && missions[task-1].ports.size() > 1)
+  {
+    stim = 0.8;
+  } else {
+    stim = 1.0;
+  }
+  if(missions[task-1].ports.size() == occupied_ports)
+  {
+    stim = 0.0;
+  }*/
+
+  stim = ((free_ports * (1.0 - min_port_stim)) / tot_ports) + min_port_stim;
+  if(free_ports == 0){stim = 0.0;}
+
+  return stim;
+}
+
 void setProbabilities(float thres)
 {
   probabilities.clear();
@@ -490,6 +588,7 @@ void setProbabilities(float thres)
   float stim, prob, norm_prob, accumul;
   float distance_stim = 0.0;
   float utility_stim = 0.0;
+  float ports_stim = 0.0;
   float sum_prob, sum_norm;
   sum_prob = 0.0;
   sum_norm = 0.0;
@@ -497,12 +596,13 @@ void setProbabilities(float thres)
   for(int i = 1 ; i <= missions.size() ; i++)
   {
     id = missions[i-1].id_task;
+    ports_stim = getPortsStimulous(i); // using ports stimulous
     // OLD SIMPLY VERSION --> stim = getStimulous(i); // i+1 because we give the id task not the vector position
     //                        prob = (stim*stim) / ((stim*stim) + (thres*thres));
     distance_stim = 1/getStimulous(i);
     utility_stim = getUtilityStimulous(i);
     stim = (alpha_utility * ((thres*2.0)/(getUmax()))) * utility_stim + distance_stim; // thres*2.0 == d_max
-    prob = (thres*thres) / ((stim*stim) + (thres*thres));
+    prob = ports_stim * ((thres*thres) / ((stim*stim) + (thres*thres))); // using ports stimulous
     norm_prob = 0.0;
     accumul = 0.0;
     sum_prob += prob;
@@ -643,11 +743,11 @@ void publishTaskObjective(ros::Publisher* task_ports_pub)
 
   aux_msg.id_kobuki = kobuki_id;
   aux_msg.id_task = current_goal.id_task;
-  printf("Port priority of robot %i for task %i:\n", aux_msg.id_kobuki, aux_msg.id_task);
+  //printf("Port priority of robot %i for task %i:\n", aux_msg.id_kobuki, aux_msg.id_task);
   for(int i = 0 ; i < ports_priority.size() ; i++)
   {
     aux_msg.port_priority.push_back(ports_priority[i]);
-    printf("      %i \n", ports_priority[i]); 
+    //printf("      %i \n", ports_priority[i]); 
   }
 
   task_ports_pub->publish(aux_msg);
