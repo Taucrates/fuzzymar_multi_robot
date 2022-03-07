@@ -9,6 +9,8 @@
 #include <std_srvs/Empty.h>
 #include "std_msgs/String.h"
 #include "std_msgs/Empty.h"
+#include "nav_msgs/Path.h"
+#include "geometry_msgs/Twist.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "actionlib_msgs/GoalID.h"
 #include "actionlib_msgs/GoalStatus.h"
@@ -91,6 +93,7 @@ uint8_t status = 255; // objective status of the robot -> 1 == in the way to goa
 ros::Time init_task; // time at which the robot begins to work in the current task 
 ros::Time leave_task; // time at which the robot leaves the current task
 
+
 Kobuki_State kobuki_state = Computing;
 
 uint8_t last_task_id;
@@ -99,7 +102,8 @@ std::vector<uint8_t> ports_priority;
 
 float min_port_stim = 0.8; // min_value at which portstimulous begin
 
-
+int count_vel = 0;
+bool may_unstuck = false;
 
 // FLAGS
 bool new_mission_state = false;
@@ -124,6 +128,10 @@ void publishGoal(ros::Publisher* goal_pub, Current_goal goal);
 void publishPortGoal(ros::Publisher* goal_pub, fuzzymar_multi_robot::port goal);
 void publishTask(ros::Publisher* task_pub);  
 void publishTaskObjective(ros::Publisher* task_ports_pub);
+
+void publishRotation(ros::Publisher* rotate_pub);
+
+bool floatSimilarTo(float a, float b, float diff);
 
 /********************************************************************************************
 *************************************** CALLBACKS *******************************************
@@ -166,7 +174,7 @@ void missionStateCallback(const fuzzymar_multi_robot::task_w_portsArray::ConstPt
 
       if(mission->missions[i].ports[j].id_kobuki == kobuki_id) //means that port is assigned to the robot
       {
-        if(/*calculated_task && */(current_port.x != aux_port.x || current_port.y != aux_port.y)) // when a new port is assigned activate flag to publish new port/goal
+        if((current_port.x != aux_port.x || current_port.y != aux_port.y)) // when a new port is assigned activate flag to publish new port/goal
         {
 
           current_port.id_port = aux_port.id_port;
@@ -220,6 +228,18 @@ void endMissionCallback(const std_msgs::Empty::ConstPtr& end_msg)
   //ROS_INFO("endMissionCallback");
   end_mission = true;
 }
+
+void cmdvelCallback(const geometry_msgs::Twist::ConstPtr& vel)
+{
+  /*float lin_x = vel->linear.x;
+  float ang_z = vel->angular.z;
+  if(floatSimilarTo(lin_x, 0.0, 0.001) && floatSimilarTo(ang_z, 0.0, 0.001) && kobuki_state == Navigating)
+  {
+    printf("Kobuki_%i is stuck, count: %i\n", kobuki_id, count_vel);
+    count_vel++;
+    may_unstuck = false;*/
+
+}
 /********************************************************************************************
 ***************************************** MAIN **********************************************
 ********************************************************************************************/
@@ -240,13 +260,14 @@ int main(int argc, char **argv)
   ros::Subscriber pose_sub = n.subscribe(pose_sub_topic, 1000, actualPoseCallback);
   ros::Subscriber goal_status_sub = n.subscribe(goal_status_sub_topic, 1000, statusGoalCallback);
   ros::Subscriber end_mission_sub = n.subscribe("/mission_accomplished", 1000, endMissionCallback);
+  ros::Subscriber cmd_vel_sub = n.subscribe("mobile_base/commands/raw_velocity", 1, cmdvelCallback);
 
   // Publishers
   ros::Publisher goal_pub = n.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 10);
   ros::Publisher task_pub = n.advertise<fuzzymar_multi_robot::action_task_w_ports>("/treball", 10);
   ros::Publisher cancel_navigation_pub = n.advertise<actionlib_msgs::GoalID>("move_base/cancel", 10);
   ros::Publisher task_ports_pub = n.advertise<fuzzymar_multi_robot::taskObjective>("/decidedTask", 10);
-
+  ros::Publisher rotate_pub = n.advertise<geometry_msgs::Twist>("mobile_base/commands/velocity", 10);
 
   // Params
   n.getParam("robot_operation_ports/kobuki_id", kobuki_id);   // "/node_name(indicated inside this code)/param_name" --> the first '/' depends if groupns is used or not
@@ -271,6 +292,8 @@ int main(int argc, char **argv)
   uint8_t aux_task_number; // how much tasks are in missions vector
   float threshold;
   float random;
+  bool has_to_rotate = false;
+  int rotate_publications = 0;
 
   printf("\nKobuki_%i has an alpha_utility of %i\n", kobuki_id, alpha_utility);
 
@@ -421,12 +444,30 @@ int main(int argc, char **argv)
       
     }
 
-    if(loop_counter == 150 || kobuki_state == Stuck){ // if the robot abort the mission or each 15 secs, clear the costmaps and publish again the objective
+    if(loop_counter == 100 || kobuki_state == Stuck || count_vel > 50){ // if the robot abort the mission or each 10 secs, clear the costmaps and publish again the objective
       
-      clearClient.call(srv);
 
       //if(kobuki_state == Stuck){publishGoal(&goal_pub, current_goal);} // republish the objective
-      if(kobuki_state == Stuck){publishPortGoal(&goal_pub, current_port);}
+      if(kobuki_state == Stuck || count_vel > 50)
+      {
+        printf("Kobuki_%i executing unstuck behavior.\n", kobuki_id);
+        //for(int i = 0 ; i < 50 ; i++){
+          publishRotation(&rotate_pub);
+        //}
+        rotate_publications++;
+        if(rotate_publications > (1.5708*10))
+        {
+          publishPortGoal(&goal_pub, current_port);
+          rotate_publications = 0;
+          count_vel = 0;
+        }
+        loop_counter = 0;
+        
+      } else {
+
+        clearClient.call(srv);
+
+      }
       
       loop_counter = 0;
     }
@@ -436,7 +477,7 @@ int main(int argc, char **argv)
     loop_rate.sleep();
 
     loop_counter++;
-
+    
   } 
 
   return 0;
@@ -774,4 +815,26 @@ void publishPortGoal(ros::Publisher* goal_pub, fuzzymar_multi_robot::port goal)
   goal_msg.pose.orientation.w = 1.0; */ 
 
   goal_pub->publish(goal_msg);
+}
+
+void publishRotation(ros::Publisher* rotate_pub)
+{
+  geometry_msgs::Twist vel;
+
+  vel.linear.x = 0.0;
+  vel.linear.y = 0.0;
+  vel.linear.z = 0.0;
+
+  vel.angular.x = 0.0;
+  vel.angular.y = 0.0;
+  vel.angular.z = 1.0;
+
+  rotate_pub->publish(vel);
+}
+
+bool floatSimilarTo(float a, float b, float diff)
+{
+  float diference = a - b;
+
+  return (diference < diff) && (-diference < diff);
 }

@@ -51,6 +51,8 @@ std::vector<Task> missions;
 ros::Time aux_time;
 ros::Time mission_time;
 
+int num_tasks = 0;
+
 // Functions Declaration
 double time2Float(ros::Time time);
 void getMission(std::vector<Task>* missions, const std::string& mission_path_file);
@@ -100,7 +102,7 @@ void portsCallback(const fuzzymar_multi_robot::task_w_portsArray::ConstPtr& port
         missions[i].ports.push_back(aux_port);
       }
 
-      printf("______________________ Task %i has %i ports.\n", missions[i].id_task, missions[i].ports.size());
+      //printf("______________________ Task %i has %i ports.\n", missions[i].id_task, missions[i].ports.size());
     }
 	
   got_ports = true;
@@ -174,9 +176,6 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(LOOPHZ);
 
-  
-
-
   while (ros::ok())
   {
 
@@ -187,7 +186,9 @@ int main(int argc, char **argv)
         if(got_ports)
         {
           printf("\nPress ENTER to begin. \n");
-        
+
+          num_tasks = missions.size();
+          
           std::cin.getline(cmd, 1);
 
           mission_time = ros::Time::now();
@@ -335,30 +336,113 @@ void publishMarkers(ros::Publisher* vis_pub)
     visualization_msgs::Marker aux_marker;
     aux_marker.action = visualization_msgs::Marker::DELETEALL;
 
+    int id_task = 0;
+    int id_port = 0;
+    int id_text = 0;
+    float red, green, blue;
+
     for(int i = 0 ; i < missions.size() ; i++)
     {
+
+        float angle = ((360 / num_tasks) * missions[i].id_task) - (360 / num_tasks)/2;
+
+        if (angle<60){
+          red = 255; green = round(angle*4.25-0.01); blue = 0;
+        } else if (angle<120){
+          red = round((120-angle)*4.25-0.01); green = 255; blue = 0;
+        } else if (angle<180){
+          red = 0, green = 255; blue = round((angle-120)*4.25-0.01);
+        } else if (angle<240){
+          red = 0, green = round((240-angle)*4.25-0.01); blue = 255;
+        } else if (angle<300){
+          red = round((angle-240)*4.25-0.01), green = 0; blue = 255;
+        } else {
+          red = 255, green = 0; blue = round((360-angle)*4.25-0.01);} 
+        
+        red = red / 255;
+        green = green / 255;
+        blue = blue / 255;
+
+        std::string text = std::to_string(missions[i].id_task);
+
         aux_marker.header.frame_id = "map";
         aux_marker.header.stamp = ros::Time::now();
+        aux_marker.lifetime = ros::Duration(0.5);
         aux_marker.ns = "tasks";
-        aux_marker.id = i;
+        aux_marker.id = id_task;
+        id_task++;
         aux_marker.type = visualization_msgs::Marker::CYLINDER;
         aux_marker.action = visualization_msgs::Marker::ADD;
         aux_marker.pose.position.x = missions[i].x;
         aux_marker.pose.position.y = missions[i].y;
-        aux_marker.pose.position.z = 0.5;
+        aux_marker.pose.position.z = 0.05;
+        aux_marker.pose.orientation.x = 0.0;
+        aux_marker.pose.orientation.y = 0.0;
+        aux_marker.pose.orientation.z = 0.0;
+        aux_marker.pose.orientation.w = 1.0;
+        aux_marker.scale.x = 0.2;
+        aux_marker.scale.y = 0.2;
+        aux_marker.scale.z = 0.10;
+        aux_marker.color.a = 1.0; // Don't forget to set the alpha!
+        aux_marker.color.r = red;
+        aux_marker.color.g = green;
+        aux_marker.color.b = blue;
+
+        marker.markers.push_back(aux_marker);
+
+        aux_marker.header.frame_id = "map";
+        aux_marker.header.stamp = ros::Time::now();
+        aux_marker.lifetime = ros::Duration(0.5);
+        aux_marker.ns = "tasks_name";
+        aux_marker.id = id_text;
+        id_text++;
+        aux_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        aux_marker.action = visualization_msgs::Marker::ADD;
+        aux_marker.text = text;
+        aux_marker.pose.position.x = missions[i].x;
+        aux_marker.pose.position.y = missions[i].y;
+        aux_marker.pose.position.z = 0.1;
         aux_marker.pose.orientation.x = 0.0;
         aux_marker.pose.orientation.y = 0.0;
         aux_marker.pose.orientation.z = 0.0;
         aux_marker.pose.orientation.w = 1.0;
         aux_marker.scale.x = 0.1;
         aux_marker.scale.y = 0.1;
-        aux_marker.scale.z = 1.0;
+        aux_marker.scale.z = 0.2;
         aux_marker.color.a = 1.0; // Don't forget to set the alpha!
-        aux_marker.color.r = 1.0;
+        aux_marker.color.r = 0.0;
         aux_marker.color.g = 0.0;
         aux_marker.color.b = 0.0;
 
         marker.markers.push_back(aux_marker);
+
+        for(int j = 0 ; j < missions[i].ports.size() ; j++)
+        {
+        aux_marker.header.frame_id = "map";
+        aux_marker.header.stamp = ros::Time::now();
+        aux_marker.lifetime = ros::Duration(0.5);
+        aux_marker.ns = "ports";
+        aux_marker.id = id_port;
+        id_port++;
+        aux_marker.type = visualization_msgs::Marker::CYLINDER;
+        aux_marker.action = visualization_msgs::Marker::ADD;
+        aux_marker.pose.position.x = missions[i].ports[j].x;
+        aux_marker.pose.position.y = missions[i].ports[j].y;
+        aux_marker.pose.position.z = 0.07;
+        aux_marker.pose.orientation.x = 0.0;
+        aux_marker.pose.orientation.y = 0.0;
+        aux_marker.pose.orientation.z = 0.0;
+        aux_marker.pose.orientation.w = 1.0;
+        aux_marker.scale.x = 0.1;
+        aux_marker.scale.y = 0.1;
+        aux_marker.scale.z = 0.10;
+        aux_marker.color.a = 1.0; // Don't forget to set the alpha!
+        aux_marker.color.r = red;
+        aux_marker.color.g = green;
+        aux_marker.color.b = blue;
+
+        marker.markers.push_back(aux_marker);
+        }
 
     }
 
@@ -391,12 +475,12 @@ void printInterface()
 {
 
   printf("\n \n \n \n \n \n \n");
-  printf("+----+-------+--------+--------+-------+-------+-----+-----+------------------+\n");
-  printf("| ID | Ports |   DD   | WEIGHT |   X   |   Y   | Rob |  U  |   Active Ports   |\n");
-  printf("+----+-------+--------+--------+-------+-------+-----+-----+------------------+\n");
+  printf("+----+--------+--------+-------+-------+-----+-----+------------------+\n");
+  printf("| ID |   DD   | WEIGHT |   X   |   Y   | Rob |  U  |  Assigned Ports  |\n");
+  printf("+----+--------+--------+-------+-------+-----+-----+------------------+\n");
   for(int i = 0 ; i < missions.size() ; i++)
   {
-    printf("| %2i |   %i   | %6.2f | %5.2f  | %5.2f | %5.2f |  %1i  | %3i |", missions[i].id_task, missions[i].number_ports, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
+    printf("| %2i | %6.2f | %5.2f  | %5.2f | %5.2f |  %1i  | %3i |", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
     for(int j = 0 ; j < 6 ; j++) // 6 is max num of ports assignable (due to the robots size)
     {
       if(j < missions[i].ports.size())
@@ -410,7 +494,7 @@ void printInterface()
     
     printf("|\n");
   }
-  printf("+----+-------+--------+--------+-------+-------+-----+-----+------------------+\n");
+  printf("+----+--------+--------+-------+-------+-----+-----+------------------+\n");
   printf("\nCurrent time: %6.3f secs\n", (double)(time2Float(ros::Time::now()) - time2Float(mission_time)));
 
 }

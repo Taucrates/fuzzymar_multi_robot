@@ -2,17 +2,17 @@
 <launch>
 
   <!-- spawn the robots (placing them at different x coordinates to avoid random collisions) -->
-  <!-- <include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
+  <include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
     <arg name="robot_name" value="kobuki_a"/>
     <arg name="initial_pose_x" value="0"/>
-  </include> -->
+  </include>
   
   <include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="initial_pose_x" value="1"/>
   </include>
 
-  <!-- <include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
+  <include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
     <arg name="robot_name" value="kobuki_c"/>
     <arg name="initial_pose_x" value="2"/>
   </include> 
@@ -25,6 +25,6 @@
   <include file="$(find kobuki_multi_robot)/simulation/includes/robot.launch">
     <arg name="robot_name" value="kobuki_e"/>
     <arg name="initial_pose_x" value="4"/> 
-  </include> -->
+  </include>
   
 </launch>

@@ -20,7 +20,11 @@
       
 
       <param name="controller_frequency" value="10.0" />
-      
+      <param name="oscillation_timeout" value="0.0" /> <!-- When DWA is not able to produce a path waits 'oscillation_timeout' secs to begin recovery behaviors-->
+      <param name="max_planning_retries" value="-1" /> 
+      <param name="recovery_behavior_enabled" value="False" /> 
+      <param name="clearing_rotation_allowed" value="False" /> 
+
       <!-- Descomentar esta linea se se utiliza navigation stack con gmapping en lugar de amcl
         <param name="global_costmap/global_frame" value="$(arg robot_name)/map"/>-->
       <param name="local_costmap/robot_base_frame" value="$(arg robot_name)/base_footprint"/>

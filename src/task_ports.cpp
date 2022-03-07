@@ -39,11 +39,13 @@ struct Task {
   uint8_t id_task;
   float x;
   float y;
+  float weight;
   uint8_t number_ports;
   std::vector<Port> ports;
 };
 
 std::vector<Task> missions;
+
 
 // Parameters with default values
 int number_ports = 4;
@@ -65,7 +67,7 @@ geometry_msgs::Pose2D world2map(float x, float y);
 //int pose2vector(float x, float y);
 geometry_msgs::Pose2D taskConcentrationPoint(); // calculate the central point doing the average of all tasks position
 void setCellValue(geometry_msgs::Pose2D cell, int x, int y);
-void setInflation(geometry_msgs::Pose2D cell);
+void setInflation(geometry_msgs::Pose2D cell, float inflat);
 void getPorts();
 void setCostmap();
 int numMaxPorts();
@@ -73,6 +75,9 @@ bool collision(float x , float y); // comprove if a point is in an occupied cell
 void possiblePorts(); // erase all the impossible ports and decide the number of designed ports for each task, if it is possible
 void printDebug(int max_ports);
 void publishPorts(ros::Publisher* ports_pub);
+
+std::vector<std::pair<int,float>> getAuxOrderedMission();
+void setPossiblePorts(std::vector<std::pair<int,float>> weight_prior_aux);
 
 /********************************************************************************************
 *************************************** CALLBACKS *******************************************
@@ -93,6 +98,7 @@ void missionsCallback(const fuzzymar_multi_robot::task_w_portsArray::ConstPtr& m
     task_data.id_task = mission->missions[i].id_task;
     task_data.x = mission->missions[i].x;
     task_data.y = mission->missions[i].y;
+    task_data.weight = mission->missions[i].weight_task;
     task_data.number_ports = mission->missions[i].number_ports; // TODO have to solve this ERROR:  free(): invalid next size (fast) \n Aborted (core dumped)
     //task_data.number_ports = number_ports;
 
@@ -167,13 +173,15 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(5);
 
   bool got_ports;
+  
+  std::vector<std::pair<int,float>> weight_prior_aux; // vector used to order the tasks in weight priority
 
   while (ros::ok())
   {
     
     
 
-    if(map_update)
+    if(map_update)  // when the map is obtained
     {
       
       setCostmap();
@@ -182,23 +190,33 @@ int main(int argc, char **argv)
       map_update = false;
     }
 
-    if(got_map)
+    if(got_map) // the costmap is publicated to debug
     {
 
       costmap_pub.publish(costmap);
 
     }
 
-    if(got_mission && !got_ports)
+    if(got_mission && !got_ports) // when the mission is received (all the task and their location) and don't already set the ports
     {
-      getPorts();
+      getPorts(); // set the ports for each task
 
       if(DEBUGGING)
       {
         printDebug(numMaxPorts());
       }
 
-      possiblePorts();
+      // redo the costmap taking account the ports to avoid having two ports located in a near place
+      // 1st -> Reorder the tasks in a new vector. With the weight as priority
+      // Loop(i)
+      //    1st -> Set the ports for the i task
+      //    2nd -> Locate in the costmap the (i) task with inflation to avoid the others tasks set their ports near
+
+      weight_prior_aux = getAuxOrderedMission();
+
+      setPossiblePorts(weight_prior_aux);
+
+      //possiblePorts(); // eliminate the ports that are in an occupied cell
 
       if(DEBUGGING)
       {
@@ -250,16 +268,23 @@ geometry_msgs::Pose2D world2map(float x , float y) //for row-major order of the 
 
   pose.x = floor((x - costmap.info.origin.position.x) / costmap.info.resolution);
   pose.y = floor((y - costmap.info.origin.position.y) / costmap.info.resolution);
+
   //pose.x = costmap.info.width*costmap.info.resolution + (costmap.info.origin.position.x - x);
   //pose.y = costmap.info.height*costmap.info.resolution + (costmap.info.origin.position.y - y);
 
   return pose;
 }
 
-/*int pose2vector(float x, float y)
+geometry_msgs::Pose2D pose2cell(float x, float y)
 {
+  geometry_msgs::Pose2D pose = world2map(x, y);
+  geometry_msgs::Pose2D pose_aux;
 
-}*/
+  pose_aux.x = pose.y;
+  pose_aux.y = pose.x;
+
+  return pose_aux;
+}
 
 geometry_msgs::Pose2D taskConcentrationPoint()
 {
@@ -300,9 +325,9 @@ void setCellValue(geometry_msgs::Pose2D cell, int x, int y)
   
 }
 
-void setInflation(geometry_msgs::Pose2D cell)
+void setInflation(geometry_msgs::Pose2D cell, float inflat)
 {
-  int cells_dist = inflation / map.info.resolution;
+  int cells_dist = inflat / map.info.resolution;
   int loop = 1;
 
   for(int x = 0 ; x <= cells_dist ; x++)
@@ -337,7 +362,7 @@ void setCostmap()
   {
     if(map.data[i] > 0)  // cell is occupied
     {
-      setInflation(vector2cell(i));
+      setInflation(vector2cell(i), inflation);
     }
   }
   
@@ -500,4 +525,60 @@ void publishPorts(ros::Publisher* ports_pub)
 		mission_buff.vector_size = missions.size();
    
     ports_pub->publish(mission_buff);
+}
+
+bool sortbysec(const std::pair<int,float> &a, const std::pair<int,float> &b)
+{
+  return (a.second > b.second);
+}
+
+std::vector<std::pair<int,float>> getAuxOrderedMission()
+{
+  std::vector<std::pair<int,float>> aux_vector;
+  std::pair<int,float> aux;
+
+  for(int i = 0 ; i < missions.size() ; i++) // loop to fill aux vector (not in weight order)
+  {
+    aux.first = missions[i].id_task;
+    aux.second = missions[i].weight;
+
+    aux_vector.push_back(aux);
+  }
+
+  sort(aux_vector.begin(), aux_vector.end(), sortbysec);
+  
+  return aux_vector;
+}
+
+void setPossiblePorts(std::vector<std::pair<int,float>> weight_prior_aux)
+{
+  int id_task;
+
+  for(int i = 0 ; i < weight_prior_aux.size() ; i++)
+  {
+    id_task = weight_prior_aux[i].first;
+
+    for(int j = 0 ; j < missions.size() ; j++)
+    {
+      if(id_task == missions[j].id_task)
+      {
+        // eliminate occupied ports
+        for(int k = 0 ; k < missions[j].ports.size() ; k++)
+        {
+          if(collision(missions[j].ports[k].x, missions[j].ports[k].y))
+          {
+            missions[j].ports.erase(missions[j].ports.begin()+k);// eliminate this port of vector ports
+            k--; //because the vector ports decrease 1
+          }
+        }
+
+        // edit costmap adding the weightiest task first
+        geometry_msgs::Pose2D map_aux = pose2cell(missions[j].x, missions[j].y);
+        
+        setInflation(map_aux, 0.85);
+        
+        break;
+      }
+    }
+  }
 }
