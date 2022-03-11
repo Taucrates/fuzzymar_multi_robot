@@ -342,7 +342,7 @@ int main(int argc, char **argv)
 
       if(end_mission || (!disponible_ports && totalNumPorts() < TOTAL_ROBOTS)) // mission is accomplished
       {
-        printf("Kobuki_%i finish their mission\n", kobuki_id);
+        printf("Kobuki_%i finish its mission\n", kobuki_id);
         actionlib_msgs::GoalID cancel_msg;
         cancel_navigation_pub.publish(cancel_msg);
         ros::shutdown();
