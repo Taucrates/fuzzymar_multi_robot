@@ -82,7 +82,7 @@ enum Kobuki_State {
 // GLOBAL VARIABLES
 int kobuki_id;
 float alpha_utility;
-float factor_UDD = 0.07;
+float UDD_factor = 0.07;
 float alpha_ports = 0.5;
 
 std::string state_sub_topic = "/mission_state";
@@ -294,7 +294,8 @@ int main(int argc, char **argv)
   // Params
   n.getParam("robot_operation_ports/kobuki_id", kobuki_id);   // "/node_name(indicated inside this code)/param_name" --> the first '/' depends if groupns is used or not
   n.getParam("robot_operation_ports/alpha_utility", alpha_utility);
-  n.getParam("robot_operation_ports/UDD_factor", factor_UDD);
+  n.getParam("robot_operation_ports/alpha_ports", alpha_ports);
+  n.getParam("robot_operation_ports/UDD_factor", UDD_factor);
 
   ros::Rate loop_rate(10);
 
@@ -320,7 +321,7 @@ int main(int argc, char **argv)
   bool has_to_rotate = false;
   int rotate_publications = 0;
 
-  printf("\nKobuki_%i has an alpha_utility of %5.2f\n", kobuki_id, alpha_utility);
+  printf("\nKobuki_%i has an alpha_utility: %5.2f , alpha_ports: %5.2f , UDD_factor: %6.4f", kobuki_id, alpha_utility, alpha_ports, UDD_factor);
 
   while (ros::ok())
   {
@@ -652,7 +653,7 @@ float getUtilityDD(int id_task)
 
       } else {
 
-        return utility = missions[i].utility * ((factor_UDD * missions[i].deadline)/((getNeededTime(i) - missions[i].deadline) + factor_UDD * missions[i].deadline));
+        return utility = missions[i].utility * ((UDD_factor * missions[i].deadline)/((getNeededTime(i) - missions[i].deadline) + UDD_factor * missions[i].deadline));
 
       }
     }
@@ -712,7 +713,7 @@ float getPortsStimulous(int task)
   }
   //stim = ((free_ports * (1.0 - min_port_stim)) / tot_ports) + min_port_stim;
   
-  stim = (1 / (free_ports/tot_ports)) - 1;
+  stim = (1 / (free_ports/float(tot_ports))) - 1;
   printf("Task: %i Port_stim: %f\n", missions[task-1].id_task, stim);
 
   return stim;
@@ -745,7 +746,7 @@ void setProbabilities(float thres)
     distance_stim = 1/getDistanceStimulous(i);
     utility_stim = getUtility_w_DeadlineStimulous(i);
     ports_stim = getPortsStimulous(i); // using ports stimulous
-
+                                    // Does Umax have to be static?
     stim = (alpha_utility * ((thres*2.0)/(getUmax()))) * utility_stim + distance_stim + alpha_ports * ports_stim; // thres*2.0 == d_max
     //prob = ports_stim * ((thres*thres) / ((stim*stim) + (thres*thres))); // using ports stimulous
 

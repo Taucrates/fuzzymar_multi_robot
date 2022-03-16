@@ -499,15 +499,15 @@ void printInterface()
   printf("+----+--------+--------+-------+-------+-----+-------+------------------+\n");
   for(int i = 0 ; i < missions.size() ; i++)
   {
-    if(missions[i].deadline < (missions[i].weight + (ros::Time::now().toSec() - mission_time.toSec())))
-    {
-
-      printf("| %2i |" ANSI_COLOR_YELLOW " %6.2f " ANSI_COLOR_RESET "| %5.2f  | %5.2f | %5.2f |  %1i  | %5.2f |", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
-    
-    } else if(missions[i].deadline < ((ros::Time::now().toSec() - mission_time.toSec())))
+    if(missions[i].deadline < ((ros::Time::now().toSec() - mission_time.toSec())))
     {
 
       printf("| %2i |" ANSI_COLOR_RED " %6.2f " ANSI_COLOR_RESET "| %5.2f  | %5.2f | %5.2f |  %1i  | %5.2f |", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
+    
+    } else if(missions[i].deadline < (missions[i].weight + (ros::Time::now().toSec() - mission_time.toSec())))
+    {
+
+      printf("| %2i |" ANSI_COLOR_YELLOW " %6.2f " ANSI_COLOR_RESET "| %5.2f  | %5.2f | %5.2f |  %1i  | %5.2f |", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
     
     } else {
 

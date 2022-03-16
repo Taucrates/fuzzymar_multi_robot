@@ -3,6 +3,7 @@
 <launch>
   <arg name="initial_pose_label" default="default"/>
   <arg name="alpha_utility" default="2.0"/>
+  <arg name="alpha_ports" default="1.5"/>
   <arg name="UDD_factor" default="0.07"/>
   <arg name="using_ports" default="True"/>
 
@@ -14,7 +15,7 @@
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include> 
 
-  <!--<include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
   </include>
@@ -27,7 +28,7 @@
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_d"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
-  </include> -->
+  </include> 
 
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_e"/>
@@ -41,15 +42,17 @@
     <arg name="robot_name" value="kobuki_a"/>
     <arg name="kobuki_id"  value="1"/>
     <arg name="alpha_utility" value="$(arg alpha_utility)"/>
+    <arg name="alpha_ports" value="$(arg alpha_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
   </include>
 
-  <!--<include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="kobuki_id"  value="2"/>
     <arg name="alpha_utility" value="$(arg alpha_utility)"/>
+    <arg name="alpha_ports" value="$(arg alpha_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
@@ -59,6 +62,7 @@
     <arg name="robot_name" value="kobuki_c"/>
     <arg name="kobuki_id"  value="3"/>
     <arg name="alpha_utility" value="$(arg alpha_utility)"/>
+    <arg name="alpha_ports" value="$(arg alpha_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
@@ -68,15 +72,17 @@
     <arg name="robot_name" value="kobuki_d"/>
     <arg name="kobuki_id"  value="4"/>
     <arg name="alpha_utility" value="$(arg alpha_utility)"/>
+    <arg name="alpha_ports" value="$(arg alpha_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
-  </include> -->
+  </include> 
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_e"/>
     <arg name="kobuki_id"  value="5"/>
     <arg name="alpha_utility" value="$(arg alpha_utility)"/>
+    <arg name="alpha_ports" value="$(arg alpha_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/> 
