@@ -23,6 +23,10 @@
 
 #define LOOPHZ 5
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 // STRUCTS
 
 struct Task {
@@ -33,7 +37,7 @@ struct Task {
 		float x;
 		float y;
 		uint8_t doing_task;
-    int utility;
+    float utility;
     std::vector<fuzzymar_multi_robot::port> ports;
 };
 
@@ -49,6 +53,7 @@ std::string state_pub_topic = "/mission_state";
 // Global Variable where save the mission
 std::vector<Task> missions;
 ros::Time aux_time;
+bool aux_time_initialized = false;
 ros::Time mission_time;
 
 int num_tasks = 0;
@@ -452,22 +457,36 @@ void publishMarkers(ros::Publisher* vis_pub)
 
 void missionsUpdate()
 {
-
-  for(uint16_t i = 0 ; i < missions.size() ; i++)
+  //printf("\n************\n Actual: %f\nNOW: %f, AUX_TIME: %f, Resta: %f\n*************\n", missions[i].deadline, time2Float(ros::Time::now()), time2Float(aux_time), (time2Float(ros::Time::now()) - time2Float(aux_time)));
+  
+  if(aux_time_initialized)
   {
-    // OLD VERSION missions[i].weight -= (float)missions[i].doing_task * (1.0/(float)LOOPHZ); // the weight is decreased due to robot/s work
-
-    missions[i].weight -= (float)missions[i].doing_task * (time2Float(ros::Time::now()) - time2Float(aux_time));
-
-    ROS_DEBUG("Task %i has weight: %f", missions[i].id_task, missions[i].weight);
-    if(missions[i].weight <= 0)
+    for(uint16_t i = 0 ; i < missions.size() ; i++)
     {
-      missions.erase(missions.begin()+i);// eliminate this task of vector missions
-      i--; //because the vector missions decrease 1
-    }
-  }
+      // OLD VERSION missions[i].weight -= (float)missions[i].doing_task * (1.0/(float)LOOPHZ); // the weight is decreased due to robot/s work
+      
+      /*if(missions[i].deadline > 0.0)
+      {
+        missions[i].deadline -= time2Float(ros::Time::now()) - time2Float(aux_time);
+      } else {
+        missions[i].deadline = 0.0;
+      }*/
+      
+      missions[i].weight -= (float)missions[i].doing_task * (time2Float(ros::Time::now()) - time2Float(aux_time));
 
-  missions_update = true;
+      ROS_DEBUG("Task %i has weight: %f", missions[i].id_task, missions[i].weight);
+      if(missions[i].weight <= 0)
+      {
+        missions.erase(missions.begin()+i);// eliminate this task of vector missions
+        i--; //because the vector missions decrease 1
+      }
+    }
+
+    missions_update = true;
+  } else {
+    aux_time_initialized = true;
+  }
+  
 
 }
 
@@ -475,12 +494,27 @@ void printInterface()
 {
 
   printf("\n \n \n \n \n \n \n");
-  printf("+----+--------+--------+-------+-------+-----+-----+------------------+\n");
-  printf("| ID |   DD   | WEIGHT |   X   |   Y   | Rob |  U  |  Assigned Ports  |\n");
-  printf("+----+--------+--------+-------+-------+-----+-----+------------------+\n");
+  printf("+----+--------+--------+-------+-------+-----+-------+------------------+\n");
+  printf("| ID |   DD   | WEIGHT |   X   |   Y   | Rob |   U   |  Assigned Ports  |\n");
+  printf("+----+--------+--------+-------+-------+-----+-------+------------------+\n");
   for(int i = 0 ; i < missions.size() ; i++)
   {
-    printf("| %2i | %6.2f | %5.2f  | %5.2f | %5.2f |  %1i  | %3i |", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
+    if(missions[i].deadline < (missions[i].weight + (ros::Time::now().toSec() - mission_time.toSec())))
+    {
+
+      printf("| %2i |" ANSI_COLOR_YELLOW " %6.2f " ANSI_COLOR_RESET "| %5.2f  | %5.2f | %5.2f |  %1i  | %5.2f |", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
+    
+    } else if(missions[i].deadline < ((ros::Time::now().toSec() - mission_time.toSec())))
+    {
+
+      printf("| %2i |" ANSI_COLOR_RED " %6.2f " ANSI_COLOR_RESET "| %5.2f  | %5.2f | %5.2f |  %1i  | %5.2f |", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
+    
+    } else {
+
+      printf("| %2i | %6.2f | %5.2f  | %5.2f | %5.2f |  %1i  | %5.2f |", missions[i].id_task, missions[i].deadline, missions[i].weight, missions[i].x, missions[i].y, missions[i].doing_task, missions[i].utility);
+
+    }
+    
     for(int j = 0 ; j < 6 ; j++) // 6 is max num of ports assignable (due to the robots size)
     {
       if(j < missions[i].ports.size())
@@ -494,7 +528,7 @@ void printInterface()
     
     printf("|\n");
   }
-  printf("+----+--------+--------+-------+-------+-----+-----+------------------+\n");
+  printf("+----+--------+--------+-------+-------+-----+-------+------------------+\n");
   printf("\nCurrent time: %6.3f secs\n", (double)(time2Float(ros::Time::now()) - time2Float(mission_time)));
 
 }

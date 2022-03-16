@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   tf2_ros
   gazebo_msgs
+  dynamic_reconfigure
 )
 
 ## Generate messages in the 'msg' folder
@@ -36,6 +37,11 @@ find_package(catkin REQUIRED COMPONENTS
    std_msgs
    geometry_msgs
    gazebo_msgs
+ )
+
+ generate_dynamic_reconfigure_options(
+  cfg/kobukis.cfg
+  #...
  )
 
 
@@ -78,3 +84,6 @@ add_dependencies(robot_operation fuzzymar_multi_robot_generate_messages_cpp)
 add_dependencies(task_ports fuzzymar_multi_robot_generate_messages_cpp)
 add_dependencies(monitor_ports fuzzymar_multi_robot_generate_messages_cpp)
 add_dependencies(robot_operation_ports fuzzymar_multi_robot_generate_messages_cpp)
+
+## dynamic_reconfigure deps
+add_dependencies(robot_operation_ports fuzzymar_multi_robot_gencfg)

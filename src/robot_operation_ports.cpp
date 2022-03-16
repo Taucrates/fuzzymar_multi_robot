@@ -21,6 +21,9 @@
 #include <fuzzymar_multi_robot/action_task_w_ports.h>
 #include <fuzzymar_multi_robot/taskObjective.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <fuzzymar_multi_robot/kobukisConfig.h>
+
 #include <tf2/LinearMath/Quaternion.h> // from rpy to quaternion
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -46,7 +49,7 @@ struct Task {
   float y;
   uint8_t doing_task;
   bool enable;
-  int utility;
+  float utility;
   std::vector<fuzzymar_multi_robot::port> ports;
 };
 
@@ -54,6 +57,7 @@ struct Probability {
   uint8_t id_task;
   float d_stimulous;
   float u_stimulous;
+  float p_stimulous;
   float stimulous;
   float probability;
   float norm_probability;
@@ -65,6 +69,7 @@ struct Current_goal {
   float x;
   float y;
   float yaw;
+  float utility;
 };
 
 
@@ -76,7 +81,10 @@ enum Kobuki_State {
 
 // GLOBAL VARIABLES
 int kobuki_id;
-int alpha_utility;
+float alpha_utility;
+float factor_UDD = 0.07;
+float alpha_ports = 0.5;
+
 std::string state_sub_topic = "/mission_state";
 std::string pose_sub_topic = "amcl_pose";
 std::string goal_status_sub_topic = "move_base/status";
@@ -92,6 +100,8 @@ uint8_t status = 255; // objective status of the robot -> 1 == in the way to goa
 
 ros::Time init_task; // time at which the robot begins to work in the current task 
 ros::Time leave_task; // time at which the robot leaves the current task
+
+ros::Time mission_time; // the time at wich the mission starts
 
 
 Kobuki_State kobuki_state = Computing;
@@ -116,8 +126,9 @@ float distance(float x1, float y1, float x2, float y2); // calculate the distanc
 bool disponiblePorts(); // disponible ports comprovation
 int totalNumPorts(); // counts the total num of ports assigned, by task_ports node, in the mission
 float getThreshold(); // get the threshold == max_dist(between tasks)/2
-float getStimulous(int task); // get the current robot stimulous for a given task
+float getDistanceStimulous(int task); // get the current robot stimulous for a given task
 float getUtilityStimulous(int task); // get the utility stimulous
+float getUtility_w_DeadlineStimulous(int task); // get the utility stimulous taking into account the deadline
 void setProbabilities(float thres); // build the probabilities vector {id_task, stimulous, probability}
 
 Current_goal setTaskObjective(float rand); // return the global goal {task_id, x, y, yaw} to publish to /kobuki_x/move_base_simple/goal
@@ -136,6 +147,14 @@ bool floatSimilarTo(float a, float b, float diff);
 /********************************************************************************************
 *************************************** CALLBACKS *******************************************
 ********************************************************************************************/
+
+void callback(fuzzymar_multi_robot::kobukisConfig &config, uint32_t level) {
+  /*ROS_INFO("Reconfigure Request: %d %f %s %s %d", 
+            config.int_param, config.double_param, 
+            config.str_param.c_str(), 
+            config.bool_param?"True":"False", 
+            config.size);*/
+}
 
 void missionStateCallback(const fuzzymar_multi_robot::task_w_portsArray::ConstPtr& mission)
 {
@@ -249,6 +268,9 @@ int main(int argc, char **argv)
 
   ros::init(argc, argv, "robot_operation_ports");
 
+  dynamic_reconfigure::Server<fuzzymar_multi_robot::kobukisConfig> server;
+  dynamic_reconfigure::Server<fuzzymar_multi_robot::kobukisConfig>::CallbackType f;
+
   ros::NodeHandle n;
 
   std::random_device rd;
@@ -272,6 +294,7 @@ int main(int argc, char **argv)
   // Params
   n.getParam("robot_operation_ports/kobuki_id", kobuki_id);   // "/node_name(indicated inside this code)/param_name" --> the first '/' depends if groupns is used or not
   n.getParam("robot_operation_ports/alpha_utility", alpha_utility);
+  n.getParam("robot_operation_ports/UDD_factor", factor_UDD);
 
   ros::Rate loop_rate(10);
 
@@ -282,6 +305,8 @@ int main(int argc, char **argv)
   int loop_counter = 0;
 
   bool first_loop = true; 
+
+  current_goal.id_task = 0; // means not decided task
 
   uint8_t count_no_port_assigned_msg = 0;
   bool recalculate = false;
@@ -295,7 +320,7 @@ int main(int argc, char **argv)
   bool has_to_rotate = false;
   int rotate_publications = 0;
 
-  printf("\nKobuki_%i has an alpha_utility of %i\n", kobuki_id, alpha_utility);
+  printf("\nKobuki_%i has an alpha_utility of %5.2f\n", kobuki_id, alpha_utility);
 
   while (ros::ok())
   {
@@ -328,6 +353,7 @@ int main(int argc, char **argv)
       
       if(first_loop){
         threshold = getThreshold(); // the threshold is gotten
+        mission_time = ros::Time::now();
       }
 
       if(!disponible_ports)
@@ -418,7 +444,7 @@ int main(int argc, char **argv)
         // Probabilities vector
         for(int i = 0 ; i < probabilities.size() ; i++)
         {
-          ROS_INFO("ID: %i , D_STIM:%f, U_STIM:%f, STIMULOUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task, probabilities[i].d_stimulous, probabilities[i].u_stimulous, probabilities[i].stimulous,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
+          ROS_INFO("ID: %i , D_STIM:%5.3f, U_STIM:%f, STIMULOUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task, probabilities[i].d_stimulous, probabilities[i].u_stimulous, probabilities[i].stimulous,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
         }
 
         // Current_goal vector
@@ -471,6 +497,9 @@ int main(int argc, char **argv)
       
       loop_counter = 0;
     }
+
+    f = boost::bind(&callback, _1, _2);
+    server.setCallback(f);
 
     ros::spinOnce();
    
@@ -562,7 +591,7 @@ float getUmax()
   return u_max;
 }
 
-float getStimulous(int task)
+float getDistanceStimulous(int task)
 {
   float stim = 1 / distance(current_position.first, current_position.second, missions[task-1].x, missions[task-1].y); // TODO change 0.0's to /kobuki_x/amcl_pose x and y
 
@@ -584,6 +613,84 @@ float getUtilityStimulous(int task)
   return stim;
 }
 
+int robotsAssigned(int task)
+{
+  int num_robots = 0;
+
+  for(int i = 0 ; i < missions[task].ports.size() ; i++)
+  {
+    if(missions[task].ports[i].id_kobuki != 0)
+    {
+      num_robots++;
+    }
+  }
+
+  return num_robots;
+}
+
+float getNeededTime(int task) // fTj
+{
+  float needed_time = 0.0;
+
+  needed_time = (ros::Time::now().toSec() - mission_time.toSec()) + (missions[task].weight / (robotsAssigned(task) + 1));
+
+  return needed_time;
+}
+
+float getUtilityDD(int id_task)
+{
+  float utility = 0.0;
+
+  for(int i = 0 ; i < missions.size() ; i++)
+  {
+    if(missions[i].id_task == id_task)
+    {
+      if(missions[i].deadline >= getNeededTime(i))
+      {
+
+        return utility = missions[i].utility;
+
+      } else {
+
+        return utility = missions[i].utility * ((factor_UDD * missions[i].deadline)/((getNeededTime(i) - missions[i].deadline) + factor_UDD * missions[i].deadline));
+
+      }
+    }
+  }
+
+  return utility;
+}
+
+float getUtility_w_DeadlineStimulous(int task)
+{
+  float stim = 0.0;
+  int task_aux = task-1;
+
+  if(current_goal.id_task == 0) // first time robot plan (only distance based)
+  {
+    //printf("INITIAL  Task_%i --> U: %f\n", missions[task_aux].id_task, 0.0);
+    return stim = 0.0;
+
+  } else /*if(current_goal.id_task != 0 && current_goal.utility > 0.0)*/{ // otherwise
+
+    //printf("Task_%i --> Ui: %f , Uj: %f\n", task, current_goal.utility, getUtilityDD(task));
+
+    if(current_goal.utility - getUtilityDD(missions[task_aux].id_task) > 0.0)  // Ui > Uj
+    {
+      //printf("NORMAL  Task_%i --> U: %f\n", missions[task_aux].id_task, (current_goal.utility - getUtilityDD(missions[task_aux].id_task)));
+      return stim = current_goal.utility - getUtilityDD(missions[task_aux].id_task);
+      
+    } else {                                                                   // Ui < Uj --> U = 0.0 
+      //printf("0.0__Task_%i --> U: %f\n", missions[task_aux].id_task, 0.0);
+      return stim = 0.0;
+    }
+
+    
+  } 
+
+  
+}
+
 float getPortsStimulous(int task)
 {
   float stim = 0.0;
@@ -598,25 +705,15 @@ float getPortsStimulous(int task)
     }
   }
 
-  /*if(missions[task-1].ports.size() - occupied_ports == 3 && missions[task-1].ports.size() > 3)
+  if(free_ports == 0)
   {
-    stim = 0.95;
-  } else if(missions[task-1].ports.size() - occupied_ports == 2 && missions[task-1].ports.size() > 2)
-  {
-    stim = 0.9;
-  } else if(missions[task-1].ports.size() - occupied_ports == 1 && missions[task-1].ports.size() > 1)
-  {
-    stim = 0.8;
-  } else {
-    stim = 1.0;
+    printf("Task: %i No free ports\n", missions[task-1].id_task);
+    return stim = -1.0;
   }
-  if(missions[task-1].ports.size() == occupied_ports)
-  {
-    stim = 0.0;
-  }*/
-
-  stim = ((free_ports * (1.0 - min_port_stim)) / tot_ports) + min_port_stim;
-  if(free_ports == 0){stim = 0.0;}
+  //stim = ((free_ports * (1.0 - min_port_stim)) / tot_ports) + min_port_stim;
+  
+  stim = (1 / (free_ports/tot_ports)) - 1;
+  printf("Task: %i Port_stim: %f\n", missions[task-1].id_task, stim);
 
   return stim;
 }
@@ -634,21 +731,40 @@ void setProbabilities(float thres)
   sum_prob = 0.0;
   sum_norm = 0.0;
 
+  printf("\n\n");
+
   for(int i = 1 ; i <= missions.size() ; i++)
   {
     id = missions[i-1].id_task;
-    ports_stim = getPortsStimulous(i); // using ports stimulous
-    // OLD SIMPLY VERSION --> stim = getStimulous(i); // i+1 because we give the id task not the vector position
+
+    // OLD SIMPLY VERSION --> stim = getDistanceStimulous(i); // i+1 because we give the id task not the vector position
     //                        prob = (stim*stim) / ((stim*stim) + (thres*thres));
-    distance_stim = 1/getStimulous(i);
-    utility_stim = getUtilityStimulous(i);
-    stim = (alpha_utility * ((thres*2.0)/(getUmax()))) * utility_stim + distance_stim; // thres*2.0 == d_max
-    prob = ports_stim * ((thres*thres) / ((stim*stim) + (thres*thres))); // using ports stimulous
+
+    //printf("Kobuki_%i -> Task_%i has Ui: %f and Uj: %f, Ujmax: %f  Result: ", kobuki_id, id, current_goal.utility, getUtilityDD(id), missions[i-1].utility);
+
+    distance_stim = 1/getDistanceStimulous(i);
+    utility_stim = getUtility_w_DeadlineStimulous(i);
+    ports_stim = getPortsStimulous(i); // using ports stimulous
+
+    stim = (alpha_utility * ((thres*2.0)/(getUmax()))) * utility_stim + distance_stim + alpha_ports * ports_stim; // thres*2.0 == d_max
+    //prob = ports_stim * ((thres*thres) / ((stim*stim) + (thres*thres))); // using ports stimulous
+
+    if(ports_stim < -0.1) // if task has not free ports prob has to be 0
+    {
+
+      prob = 0.0;
+
+    } else {
+
+      prob = 1 / (1 + (thres*thres)*(stim*stim));
+
+    }
+    
     norm_prob = 0.0;
     accumul = 0.0;
     sum_prob += prob;
 
-    Probability aux_prob = {id, distance_stim, utility_stim, stim, prob, norm_prob, accumul};
+    Probability aux_prob = {id, distance_stim, utility_stim, ports_stim, stim, prob, norm_prob, accumul};
 
     probabilities.push_back(aux_prob);
   }
@@ -659,13 +775,18 @@ void setProbabilities(float thres)
     probabilities[j].accumulative = sum_norm;
   }
 
+  for(int i = 0 ; i < probabilities.size() ; i++)
+  {
+    ROS_INFO("ID: %i , D_STIM: %5.3f, U_STIM: %f, P_STIM: %f, STIMULOUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task, probabilities[i].d_stimulous, probabilities[i].u_stimulous, probabilities[i].p_stimulous, probabilities[i].stimulous,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
+  }
+
 }
 
 Current_goal setTaskObjective(float rand)
 {
   Current_goal aux_objective;
   uint8_t id;
-  float x, y, yaw;
+  float x, y, yaw, utility;
   float prob = 0.0;
   
   for(int i = 0 ; i < probabilities.size() ; i ++)  // set a task for the robot from available ones
@@ -675,12 +796,13 @@ Current_goal setTaskObjective(float rand)
       x = missions[i].x;
       y = missions[i].y;
       yaw = 0.0;  // TODO es ports per a cada missio
+      utility = getUtilityDD(id);
       
       break; // out of loop
     }
   }
 
-  aux_objective = {id, x, y, yaw};
+  aux_objective = {id, x, y, yaw, utility};
   return aux_objective;
 
 }
@@ -764,13 +886,13 @@ void publishTask(ros::Publisher* task_pub)
     aux_task.nsec = init_task.nsec;
     aux_task.active = true;
     aux_task.id_task = current_goal.id_task;  // TODO millorar aquesta chapuzilla !!!!!!
-    printf("\nKobuki_%i starts task %i at sec:%i nsec: %i\n", aux_task.id_kobuki, aux_task.id_task, aux_task.sec, aux_task.nsec);
+    printf("\nKobuki_%i starts task %i at sec:%6.3f\n", aux_task.id_kobuki, aux_task.id_task, (ros::Time::now().toSec() - mission_time.toSec()));
   } else {
     aux_task.sec = leave_task.sec;
     aux_task.nsec = leave_task.nsec;
     aux_task.active = false;
     aux_task.id_task = last_task_id;  // TODO millorar aquesta chapuzilla !!!!!!
-    printf("\nKobuki_%i leave task %i at sec:%i nsec: %i\n", aux_task.id_kobuki, aux_task.id_task, aux_task.sec, aux_task.nsec);
+    printf("\nKobuki_%i leave task %i at sec:%6.3f\n", aux_task.id_kobuki, aux_task.id_task, (ros::Time::now().toSec() - mission_time.toSec()));
   }
 
   last_task_id = current_goal.id_task;
