@@ -11,15 +11,22 @@
 #include <fuzzymar_multi_robot/task_w_ports.h>
 #include <fuzzymar_multi_robot/task_w_portsArray.h>
 #include <fuzzymar_multi_robot/action_task_w_ports.h>
+#include <fuzzymar_multi_robot/time_task.h>
 #include <fuzzymar_multi_robot/taskObjective.h>
 #include "visualization_msgs/MarkerArray.h"
 #include "visualization_msgs/Marker.h"
+
 #include <stdio.h>
 #include <fstream>
 #include <string>
 #include <iostream>
 #include <vector>
 #include <iomanip>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <bits/stdc++.h>
+#include <ctime>
+#include <time.h>
 
 #define LOOPHZ 5
 
@@ -63,8 +70,10 @@ double time2Float(ros::Time time);
 void getMission(std::vector<Task>* missions, const std::string& mission_path_file);
 void publishMission(ros::Publisher* mission_pub);
 void publishMarkers(ros::Publisher* vis_pub);
-void missionsUpdate();
+void publishTimeTask(ros::Publisher& time_pub, int id_task, int sec, int nsec);
+void missionsUpdate(ros::Publisher& time_pub);
 void printInterface();
+std::string current_date();
 
 /********************************************************************************************
 *************************************** CALLBACKS *******************************************
@@ -171,6 +180,7 @@ int main(int argc, char **argv)
   ros::Publisher mission_pub = n.advertise<fuzzymar_multi_robot::task_w_portsArray>(state_pub_topic, 10);
   ros::Publisher vis_pub = n.advertise<visualization_msgs::MarkerArray>( "visualization_marker_array", 1);
   ros::Publisher end_mission_pub = n.advertise<std_msgs::Empty>( "/mission_accomplished", 10);
+  ros::Publisher time_pub = n.advertise<fuzzymar_multi_robot::time_task>( "/time_information", 10);
 
   // Variable as buffer to read de keyboard 
   char cmd[1];
@@ -178,6 +188,11 @@ int main(int argc, char **argv)
   // Getting path to .txt file (mission)
   std::string mission_path_file;
   n.getParam("/monitor_ports/mission_path_file", mission_path_file);   // "/node_name(indicated inside this code)/param_name" 
+
+  // Write mission info
+  std::ofstream outfile;
+  std::string folder_directory = "/home/tonitauler/catkin_ws/src/fuzzymar_multi_robot/data/";
+  std::string file_name = folder_directory + current_date() + ".csv";
 
   ros::Rate loop_rate(LOOPHZ);
 
@@ -190,6 +205,9 @@ int main(int argc, char **argv)
 
         if(got_ports)
         {
+          //outfile.open(file_name, std::fstream::in | std::fstream::out | std::fstream::app);
+          //outfile << "%Task" << ", " << "End time" << std::endl;
+
           printf("\nPress ENTER to begin. \n");
 
           num_tasks = missions.size();
@@ -197,6 +215,11 @@ int main(int argc, char **argv)
           std::cin.getline(cmd, 1);
 
           mission_time = ros::Time::now();
+
+          printf("Init Time: sec: %i , nsec: %i\n", mission_time.sec, mission_time.nsec);
+          printf("Init Time: sec: %f\n", mission_time.toSec());
+
+          publishTimeTask(time_pub, 0, mission_time.sec, mission_time.nsec);
 
           first_loop = false;
 
@@ -221,7 +244,7 @@ int main(int argc, char **argv)
     {
       if(!mission_finalized) // vector missions is updated
       {
-        missionsUpdate();
+        missionsUpdate(time_pub);
         aux_time = ros::Time::now();
       }
 
@@ -240,7 +263,7 @@ int main(int argc, char **argv)
           end_mission_pub.publish(end_msg);
           
           mission_finalized = true;
-          first_loop = true;
+          //first_loop = true;
         } 
 
         publishMarkers(&vis_pub);
@@ -455,7 +478,19 @@ void publishMarkers(ros::Publisher* vis_pub)
 
 }
 
-void missionsUpdate()
+void publishTimeTask(ros::Publisher& time_pub, int id_task, int sec, int nsec)
+{
+
+    fuzzymar_multi_robot::time_task time_buff;
+
+    time_buff.id_task = id_task;
+    time_buff.sec = sec;
+    time_buff.nsec = nsec;
+   
+    time_pub.publish(time_buff);
+}
+
+void missionsUpdate(ros::Publisher& time_pub)
 {
   //printf("\n************\n Actual: %f\nNOW: %f, AUX_TIME: %f, Resta: %f\n*************\n", missions[i].deadline, time2Float(ros::Time::now()), time2Float(aux_time), (time2Float(ros::Time::now()) - time2Float(aux_time)));
   
@@ -477,6 +512,11 @@ void missionsUpdate()
       ROS_DEBUG("Task %i has weight: %f", missions[i].id_task, missions[i].weight);
       if(missions[i].weight <= 0)
       {
+        // WRITE IN TXT
+        //*outfile << std::to_string(missions[i].id_task) << ", " << std::to_string(ros::Time::now().toSec() - mission_time.toSec()) << std::endl;
+        ros::Time time_aux = ros::Time::now();
+        publishTimeTask(time_pub, missions[i].id_task, time_aux.sec, time_aux.nsec);
+
         missions.erase(missions.begin()+i);// eliminate this task of vector missions
         i--; //because the vector missions decrease 1
       }
@@ -531,4 +571,17 @@ void printInterface()
   printf("+----+--------+--------+-------+-------+-----+-------+------------------+\n");
   printf("\nCurrent time: %6.3f secs\n", (double)(time2Float(ros::Time::now()) - time2Float(mission_time)));
 
+}
+
+std::string current_date()
+{
+    time_t now = time(0);
+
+    tm *ltm = localtime(&now);
+
+    std::string date;
+
+    date = std::to_string(1900 + ltm->tm_year) + "-" + std::to_string(1 + ltm->tm_mon) + "-" + std::to_string(ltm->tm_mday) + "_" + std::to_string(ltm->tm_hour) + ":" + std::to_string(ltm->tm_min);
+    //ltm->tm_sec //if we want the seconds
+    return date;
 }

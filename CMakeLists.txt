@@ -29,6 +29,7 @@ find_package(catkin REQUIRED COMPONENTS
    task_w_portsArray.msg
    action_task_w_ports.msg
    taskObjective.msg
+   time_task.msg
  )
 
 ## Generate added messages and services with any dependencies listed here

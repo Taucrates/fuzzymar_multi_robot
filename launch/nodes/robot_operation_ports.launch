@@ -5,7 +5,8 @@
   <arg name="robot_name" default="kobuki"/>
   <arg name="kobuki_id" default="1"/>
   <arg name="alpha_utility" default="2.0"/>  <!-- if alpha_utility = 0 only take cares about distance to obtain de stimulous -->
-  <arg name="alpha_ports" default="1.5"/>
+  <arg name="beta_distance" default="3.0"/>
+  <arg name="gamma_ports" default="1.5"/>
   <arg name="UDD_factor" default="0.07"/> 
 
   <!-- Multi master slave -->
@@ -13,7 +14,8 @@
     <node pkg="fuzzymar_multi_robot" type="robot_operation_ports" name="robot_operation_ports" output="screen" >
       <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />
       <param name="alpha_utility" type="double" value="$(arg alpha_utility)" />
-      <param name="alpha_ports" type="double" value="$(arg alpha_ports)" />
+      <param name="beta_distance" type="double" value="$(arg beta_distance)"/>
+      <param name="gamma_ports" type="double" value="$(arg gamma_ports)" />
       <param name="UDD_factor" type="double" value="$(arg UDD_factor)" />
     </node>
   </group>

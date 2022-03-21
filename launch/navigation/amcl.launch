@@ -1,7 +1,7 @@
 <launch>
   <!-- Arguments -->
   <arg name="robot_name" default="kobuki"/>
-  <arg name="initial_pose_label" default="default"/> <!-- Please configure a mission at $(find kobuki_multi_robot)/param/missions-->
+  <arg name="initial_pose_label" default="default"/> <!-- Please configure a mission at $(find fuzzymar_multi_robot)/missions/initial_poses-->
   
   <group ns="$(arg robot_name)">
     <!-- AMCL -->

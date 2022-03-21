@@ -1,0 +1,32 @@
+<!--
+  YOCS velocity smoother launcher
+  -->
+<launch>
+  <arg name="node_name"             default="velocity_smoother"/>
+  <arg name="robot_name"            default="kobuki"/>
+  <arg name="nodelet_manager_name"  default="nodelet_manager"/>
+  <arg name="config_file"           default="$(find fuzzymar_multi_robot)/config/velocity_smoother/velocity_smoother.yaml"/>
+  <arg name="max_vel_file"           default="$(find fuzzymar_multi_robot)/config/velocity_smoother/max_vel_$(arg robot_name).yaml"/>
+  <arg name="raw_cmd_vel_topic"     default="/$(arg robot_name)/mobile_base/commands/raw_velocity"/>
+  <arg name="smooth_cmd_vel_topic"  default="/$(arg robot_name)/mobile_base/commands/velocity"/>
+  <arg name="robot_cmd_vel_topic"   default="/$(arg robot_name)/mobile_base/commands/velocity"/>
+  <arg name="odom_topic"            default="/$(arg robot_name)/odom"/>
+
+  <group ns="$(arg robot_name)">
+    <node pkg="nodelet" type="nodelet" name="$(arg node_name)"
+          args="load yocs_velocity_smoother/VelocitySmootherNodelet $(arg nodelet_manager_name)" output="screen">
+          
+      <!-- parameters -->
+      <rosparam file="$(arg config_file)" command="load"/>
+      <rosparam file="$(arg max_vel_file)" command="load"/>
+
+      <!-- velocity commands I/O -->
+      <remap from="$(arg node_name)/raw_cmd_vel"    to="$(arg raw_cmd_vel_topic)"/>
+      <remap from="$(arg node_name)/smooth_cmd_vel" to="$(arg smooth_cmd_vel_topic)"/>
+
+      <!-- Robot velocity feedbacks -->
+      <remap from="$(arg node_name)/robot_cmd_vel"  to="$(arg robot_cmd_vel_topic)"/>
+      <remap from="$(arg node_name)/odometry"       to="$(arg odom_topic)"/>
+    </node>
+  </group>
+</launch>
