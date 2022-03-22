@@ -70,7 +70,7 @@ double time2Float(ros::Time time);
 void getMission(std::vector<Task>* missions, const std::string& mission_path_file);
 void publishMission(ros::Publisher* mission_pub);
 void publishMarkers(ros::Publisher* vis_pub);
-void publishTimeTask(ros::Publisher& time_pub, int id_task, int sec, int nsec);
+void publishTimeTask(ros::Publisher& time_pub, int id_task, int sec, int nsec, float deadline, float u_max, int total_ports);
 void missionsUpdate(ros::Publisher& time_pub);
 void printInterface();
 std::string current_date();
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
           printf("Init Time: sec: %i , nsec: %i\n", mission_time.sec, mission_time.nsec);
           printf("Init Time: sec: %f\n", mission_time.toSec());
 
-          publishTimeTask(time_pub, 0, mission_time.sec, mission_time.nsec);
+          publishTimeTask(time_pub, 0, mission_time.sec, mission_time.nsec, 0, 0, 0);
 
           first_loop = false;
 
@@ -478,7 +478,7 @@ void publishMarkers(ros::Publisher* vis_pub)
 
 }
 
-void publishTimeTask(ros::Publisher& time_pub, int id_task, int sec, int nsec)
+void publishTimeTask(ros::Publisher& time_pub, int id_task, int sec, int nsec, float deadline, float u_max, int total_ports)
 {
 
     fuzzymar_multi_robot::time_task time_buff;
@@ -486,6 +486,9 @@ void publishTimeTask(ros::Publisher& time_pub, int id_task, int sec, int nsec)
     time_buff.id_task = id_task;
     time_buff.sec = sec;
     time_buff.nsec = nsec;
+    time_buff.deadline = deadline;
+    time_buff.utility_max = u_max;
+    time_buff.total_ports = total_ports;
    
     time_pub.publish(time_buff);
 }
@@ -515,7 +518,7 @@ void missionsUpdate(ros::Publisher& time_pub)
         // WRITE IN TXT
         //*outfile << std::to_string(missions[i].id_task) << ", " << std::to_string(ros::Time::now().toSec() - mission_time.toSec()) << std::endl;
         ros::Time time_aux = ros::Time::now();
-        publishTimeTask(time_pub, missions[i].id_task, time_aux.sec, time_aux.nsec);
+        publishTimeTask(time_pub, missions[i].id_task, time_aux.sec, time_aux.nsec, missions[i].deadline, missions[i].utility, missions[i].ports.size());
 
         missions.erase(missions.begin()+i);// eliminate this task of vector missions
         i--; //because the vector missions decrease 1
@@ -535,7 +538,7 @@ void printInterface()
 
   printf("\n \n \n \n \n \n \n");
   printf("+----+--------+--------+-------+-------+-----+-------+------------------+\n");
-  printf("| ID |   DD   | WEIGHT |   X   |   Y   | Rob |   U   |  Assigned Ports  |\n");
+  printf("| ID |   DL   | WEIGHT |   X   |   Y   | Rob |   U   |  Assigned Ports  |\n");
   printf("+----+--------+--------+-------+-------+-----+-------+------------------+\n");
   for(int i = 0 ; i < missions.size() ; i++)
   {

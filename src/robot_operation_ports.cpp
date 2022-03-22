@@ -586,18 +586,29 @@ float getMaxDist()
 {
   float aux_dist = 0.0;
   float dist = 0.0;
-  for(int i = 0 ; i < missions.size() - 1 ; i++)
-  {
-    for (int j = 1 ; j < missions.size() ; j++)
-    {
+  bool first_aux = true;
 
-      dist = distance(missions[i].x, missions[i].y, missions[j].x, missions[j].y);
+  for(int i = 0 ; i < missions.size()  ; i++)
+  {
+    
+    for (int j = 0 ; j < missions.size() ; j++)
+    {
+      if(first_aux){
+        
+        dist = distance(current_position.first, current_position.second, missions[j].x, missions[j].y);
+        
+      } else {
+        
+        dist = distance(missions[i].x, missions[i].y, missions[j].x, missions[j].y);
+        
+      }
 
       if(aux_dist < dist)
       {
         aux_dist = dist;
       }
     }
+    first_aux = false;
   }
   
   return aux_dist;
