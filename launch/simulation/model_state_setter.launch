@@ -1,12 +1,12 @@
 <!--  Launches node to place kobukis properly inside the simulation  -->
 <launch>
-  <arg name="initial_pose_label" default="default"/>
+  <arg name="mission_name" default="default"/>
   <arg name="robot_name" default="kobuki"/>
 
     <group ns="$(arg robot_name)">
         <node name="model_state_setter" pkg="kobuki_multi_robot" type="model_state_setter" output="screen">
             <param name="robot_name" value="$(arg robot_name)"/>
-            <rosparam file="$(find fuzzymar_multi_robot)/missions/initial_poses/$(arg initial_pose_label)/$(arg robot_name).yaml" command="load"/>
+            <rosparam file="$(find fuzzymar_multi_robot)/missions/initial_poses/$(arg mission_name)/$(arg robot_name).yaml" command="load"/>
         </node>
     </group>
 

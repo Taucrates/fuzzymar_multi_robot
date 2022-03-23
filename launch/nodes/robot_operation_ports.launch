@@ -4,6 +4,7 @@
 <launch>
   <arg name="robot_name" default="kobuki"/>
   <arg name="kobuki_id" default="1"/>
+  <arg name="mission_name" default="default"/>
   <arg name="alpha_utility" default="2.0"/>  
   <arg name="beta_distance" default="3.0"/>
   <arg name="gamma_ports" default="1.5"/>
@@ -13,12 +14,16 @@
   <!-- Multi master slave -->
   <group ns="$(arg robot_name)">
     <node pkg="fuzzymar_multi_robot" type="robot_operation_ports" name="robot_operation_ports" output="screen" >
+
+      <rosparam command="load" file="$(find fuzzymar_multi_robot)/missions/robot_parameters/$(arg mission_name)/$(arg robot_name).yaml"/>
+      
       <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />
-      <param name="alpha_utility" type="double" value="$(arg alpha_utility)" />
+      <!--<param name="alpha_utility" type="double" value="$(arg alpha_utility)" />
       <param name="beta_distance" type="double" value="$(arg beta_distance)"/>
       <param name="gamma_ports" type="double" value="$(arg gamma_ports)" />
-      <param name="UDD_factor" type="double" value="$(arg UDD_factor)" />
+      <param name="UDD_factor" type="double" value="$(arg UDD_factor)" /> -->
       <param name="possibilistic" type="bool" value="$(arg possibilistic)" />
+
     </node>
   </group>
 </launch>

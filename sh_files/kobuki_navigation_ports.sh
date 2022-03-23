@@ -8,11 +8,11 @@ case "$1" in
         echo " "
         echo "options:"
         echo "-h, --help          show brief help"
-        echo "-i, --initial       loads initial_pose from fuzzymar_multi_robot/missions/initial_pose folder"
+        echo "-m, --mission       loads mission name to se initial position and parameters of the robot"
         exit 0
         ;;
-    -i|--initial)
-        roslaunch fuzzymar_multi_robot kobuki_navigation.launch using_ports:=True kobuki_id:=$KOBUKI_ID robot_name:=$KOBUKI_NAME initial_pose_label:=$2
+    -m|--mission)
+        roslaunch fuzzymar_multi_robot kobuki_navigation.launch using_ports:=True kobuki_id:=$KOBUKI_ID robot_name:=$KOBUKI_NAME mission_name:=$2
         exit 0
         ;;
     *)

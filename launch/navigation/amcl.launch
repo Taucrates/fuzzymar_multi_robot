@@ -1,7 +1,7 @@
 <launch>
   <!-- Arguments -->
   <arg name="robot_name" default="kobuki"/>
-  <arg name="initial_pose_label" default="default"/> <!-- Please configure a mission at $(find fuzzymar_multi_robot)/missions/initial_poses-->
+  <arg name="mission_name" default="default"/> <!-- Please configure a mission at $(find fuzzymar_multi_robot)/missions/initial_poses-->
   
   <group ns="$(arg robot_name)">
     <!-- AMCL -->
@@ -9,7 +9,7 @@
       <!-- amcl configuration -->
       <rosparam file="$(find fuzzymar_multi_robot)/config/amcl.yaml" command="load"/>
       <!-- initial pose given a mission -->
-      <rosparam file="$(find fuzzymar_multi_robot)/missions/initial_poses/$(arg initial_pose_label)/$(arg robot_name).yaml" command="load"/>
+      <rosparam file="$(find fuzzymar_multi_robot)/missions/initial_poses/$(arg mission_name)/$(arg robot_name).yaml" command="load"/>
 
       <param name="odom_frame_id"  value="$(arg robot_name)/odom"/>
       <param name="base_frame_id"  value="$(arg robot_name)/base_footprint"/>

@@ -1,7 +1,7 @@
 <!--  Launches node to place kobukis properly inside the simulation 
       and navigation nodes -->
 <launch>
-  <arg name="initial_pose_label" default="default"/>
+  <arg name="mission_name" default="default"/>
   <arg name="alpha_utility" default="2.0"/>
   <arg name="beta_distance" default="3.0"/>
   <arg name="gamma_ports" default="1.5"/>
@@ -14,27 +14,27 @@
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - -->
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_a"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
   </include> 
 
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_b"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_c"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_d"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_e"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
   </include>
 
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -47,7 +47,7 @@
     <arg name="beta_distance" value="$(arg beta_distance)"/>
     <arg name="gamma_ports" value="$(arg gamma_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
     <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
@@ -59,7 +59,7 @@
     <arg name="beta_distance" value="$(arg beta_distance)"/>
     <arg name="gamma_ports" value="$(arg gamma_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
     <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
@@ -71,7 +71,7 @@
     <arg name="beta_distance" value="$(arg beta_distance)"/>
     <arg name="gamma_ports" value="$(arg gamma_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
     <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
@@ -83,7 +83,7 @@
     <arg name="beta_distance" value="$(arg beta_distance)"/>
     <arg name="gamma_ports" value="$(arg gamma_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
     <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include> 
@@ -95,7 +95,7 @@
     <arg name="beta_distance" value="$(arg beta_distance)"/>
     <arg name="gamma_ports" value="$(arg gamma_ports)"/>
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>
     <arg name="using_ports" value="$(arg using_ports)"/> 
     <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
