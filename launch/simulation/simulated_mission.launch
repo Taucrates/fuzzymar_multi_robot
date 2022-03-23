@@ -7,6 +7,7 @@
   <arg name="gamma_ports" default="1.5"/>
   <arg name="UDD_factor" default="0.07"/>
   <arg name="using_ports" default="True"/>
+  <arg name="possibilistic" default="True"/> <!-- if possibilistic == False the function to set the objective becomes DETERMINISTIC -->
 
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - -->
   <!-- Nodes to call service placing kobukis in simulation -->
@@ -48,6 +49,7 @@
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
+    <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
@@ -59,6 +61,7 @@
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
+    <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
@@ -70,6 +73,7 @@
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
+    <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
@@ -81,6 +85,7 @@
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
+    <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include> 
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
@@ -92,5 +97,6 @@
     <arg name="UDD_factor" value="$(arg UDD_factor)"/>
     <arg name="initial_pose_label" value="$(arg initial_pose_label)"/>
     <arg name="using_ports" value="$(arg using_ports)"/> 
+    <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
 </launch>

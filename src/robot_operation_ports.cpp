@@ -20,6 +20,7 @@
 #include <fuzzymar_multi_robot/task_w_portsArray.h>
 #include <fuzzymar_multi_robot/action_task_w_ports.h>
 #include <fuzzymar_multi_robot/taskObjective.h>
+#include <fuzzymar_multi_robot/robotParameters.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <fuzzymar_multi_robot/kobukisConfig.h>
@@ -82,6 +83,8 @@ enum Kobuki_State {
 // GLOBAL VARIABLES
 int kobuki_id;
 
+bool possibilistic = false;
+
 float alpha_utility = 2.0;
 float beta_distance = 1.0;
 float gamma_ports = 0.5;
@@ -141,7 +144,8 @@ float getUtilityStimulus(int task); // get the utility stimulus
 float getUtility_w_DeadlineStimulus(int task); // get the utility stimulus taking into account the deadline
 void setProbabilities(float thres, float u_max, float d_max); // build the probabilities vector {id_task, stimulus, probability}
 
-Current_goal setTaskObjective(float rand); // return the global goal {task_id, x, y, yaw} to publish to /kobuki_x/move_base_simple/goal
+Current_goal setTaskObjectivePossibilistic(float rand); // return the global goal {task_id, x, y, yaw} to publish to /kobuki_x/move_base_simple/goal
+Current_goal setTaskObjectiveDeterministic();
 
 void setPortPriority(); //sets the priority of the ports for the current task (use distance as priority)
 
@@ -149,6 +153,7 @@ void publishGoal(ros::Publisher* goal_pub, Current_goal goal);
 void publishPortGoal(ros::Publisher* goal_pub, fuzzymar_multi_robot::port goal);
 void publishTask(ros::Publisher* task_pub);  
 void publishTaskObjective(ros::Publisher* task_ports_pub);
+void publishRobParamInfo(ros::Publisher& rob_param_pub);
 
 void publishRotation(ros::Publisher* rotate_pub);
 
@@ -267,17 +272,6 @@ void endMissionCallback(const std_msgs::Empty::ConstPtr& end_msg)
   end_mission = true;
 }
 
-void cmdvelCallback(const geometry_msgs::Twist::ConstPtr& vel)
-{
-  /*float lin_x = vel->linear.x;
-  float ang_z = vel->angular.z;
-  if(floatSimilarTo(lin_x, 0.0, 0.001) && floatSimilarTo(ang_z, 0.0, 0.001) && kobuki_state == Navigating)
-  {
-    printf("Kobuki_%i is stuck, count: %i\n", kobuki_id, count_vel);
-    count_vel++;
-    may_unstuck = false;*/
-
-}
 /********************************************************************************************
 ***************************************** MAIN **********************************************
 ********************************************************************************************/
@@ -301,7 +295,6 @@ int main(int argc, char **argv)
   ros::Subscriber pose_sub = n.subscribe(pose_sub_topic, 1000, actualPoseCallback);
   ros::Subscriber goal_status_sub = n.subscribe(goal_status_sub_topic, 1000, statusGoalCallback);
   ros::Subscriber end_mission_sub = n.subscribe("/mission_accomplished", 1000, endMissionCallback);
-  ros::Subscriber cmd_vel_sub = n.subscribe("mobile_base/commands/raw_velocity", 1, cmdvelCallback);
 
   // Publishers
   ros::Publisher goal_pub = n.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 10);
@@ -309,6 +302,7 @@ int main(int argc, char **argv)
   ros::Publisher cancel_navigation_pub = n.advertise<actionlib_msgs::GoalID>("move_base/cancel", 10);
   ros::Publisher task_ports_pub = n.advertise<fuzzymar_multi_robot::taskObjective>("/decidedTask", 10);
   ros::Publisher rotate_pub = n.advertise<geometry_msgs::Twist>("mobile_base/commands/velocity", 10);
+  ros::Publisher rob_param_pub = n.advertise<fuzzymar_multi_robot::robotParameters>("/rob_parameters_info", 10);
 
   // Params
   n.getParam("robot_operation_ports/kobuki_id", kobuki_id);   // "/node_name(indicated inside this code)/param_name" --> the first '/' depends if groupns is used or not
@@ -316,6 +310,7 @@ int main(int argc, char **argv)
   n.getParam("robot_operation_ports/beta_distance", beta_distance);
   n.getParam("robot_operation_ports/gamma_ports", gamma_ports);
   n.getParam("robot_operation_ports/UDD_factor", UDD_factor);
+  n.getParam("robot_operation_ports/possibilistic", possibilistic);
 
   ros::param::get("velocity_smoother/speed_lim_v", max_vel);
   max_vel_aux = max_vel;
@@ -344,7 +339,10 @@ int main(int argc, char **argv)
   bool has_to_rotate = false;
   int rotate_publications = 0;
 
-  printf("\nKobuki_%i has an alpha_utility: %5.2f , beta_distance: %5.2f, gamma_ports: %5.2f , UDD_factor: %6.4f, max_vel: %5.2f\n", kobuki_id, alpha_utility, beta_distance, gamma_ports, UDD_factor, max_vel);
+  printf("\nKobuki_%i has an alpha_utility: %5.2f , beta_distance: %5.2f, gamma_ports: %5.2f , UDD_factor: %6.4f, max_vel: %5.2f ", kobuki_id, alpha_utility, beta_distance, gamma_ports, UDD_factor, max_vel);
+  
+  if(possibilistic){printf(" POSSIBILISTIC\n");} 
+  else{printf(" DETERMINISTIC\n");}
 
   while (ros::ok())
   {
@@ -380,6 +378,8 @@ int main(int argc, char **argv)
         threshold =  4 / max_dist;// the threshold is gotten
         utility_max = getUmax();
 
+        publishRobParamInfo(rob_param_pub);
+
         //printf("\nd_max: %f threshold: %f Umax: %f\n",max_dist, threshold, utility_max);
         mission_time = ros::Time::now();
       }
@@ -407,16 +407,24 @@ int main(int argc, char **argv)
 
           setProbabilities(threshold, utility_max, max_dist); // the probabilities for each task are obtained
 
-          random = dis(gen);
+          if(possibilistic)
+          {
+            random = dis(gen);
+            current_goal = setTaskObjectivePossibilistic(random); // set de current task (task objective) for the robot
 
-          current_goal = setTaskObjective(random); // set de current objective (task) for the robot
+          } else {
 
-          setPortPriority();
+            current_goal = setTaskObjectiveDeterministic();
 
-          publishTaskObjective(&task_ports_pub);
+          }
+          
+
+          setPortPriority(); // the port priority for the current task (using distance) is setted 
+
+          publishTaskObjective(&task_ports_pub); // the task objective and its own port priority is published
           if(recalculate){printf("Kobuki_%i ***recalculate*** the task and port.\n", kobuki_id);}
 
-          disponible_ports = disponiblePorts();
+          disponible_ports = disponiblePorts(); // set to true if there are free_ports in the current task
           recalculate = false;
 
         }
@@ -436,7 +444,7 @@ int main(int argc, char **argv)
           calculated_task = false;
           //count_recalculate = 0;
 
-        } else if (calculated_task && !port_assigned) // to avoid the robot try to go to a task without available ports (robot doesn't has a port assigned)
+        } else if (calculated_task && !port_assigned) // to avoid the robot try to go to a task without available ports (robot hasn't got a port assigned)
         {
           count_no_port_assigned_msg++;
 
@@ -498,11 +506,11 @@ int main(int argc, char **argv)
       
     }
 
-    if(loop_counter == 100 || kobuki_state == Stuck || count_vel > 50){ // if the robot abort the mission or each 10 secs, clear the costmaps and publish again the objective
+    if(loop_counter == 100 || kobuki_state == Stuck){ // if the robot abort the mission or each 10 secs, clear the costmaps and publish again the objective
       
 
       //if(kobuki_state == Stuck){publishGoal(&goal_pub, current_goal);} // republish the objective
-      if(kobuki_state == Stuck || count_vel > 50)
+      if(kobuki_state == Stuck)
       {
         printf("Kobuki_%i executing unstuck behavior.\n", kobuki_id);
         //for(int i = 0 ; i < 50 ; i++){
@@ -513,7 +521,7 @@ int main(int argc, char **argv)
         {
           publishPortGoal(&goal_pub, current_port);
           rotate_publications = 0;
-          count_vel = 0;
+          
           clearClient.call(srv);
         }
         loop_counter = 0;
@@ -770,7 +778,7 @@ void setProbabilities(float thres, float u_max, float d_max)
   sum_prob = 0.0;
   sum_norm = 0.0;
 
-  //printf("\n\n");
+  printf("\n\n");
 
   for(int i = 1 ; i <= missions.size() ; i++)
   {
@@ -815,14 +823,14 @@ void setProbabilities(float thres, float u_max, float d_max)
     probabilities[j].accumulative = sum_norm;
   }
 
-  /*for(int i = 0 ; i < probabilities.size() ; i++)
+  for(int i = 0 ; i < probabilities.size() ; i++)
   {
     ROS_INFO("ID: %i , D_STIM: %5.3f, U_STIM: %f, P_STIM: %f, STIMULUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task, probabilities[i].d_stimulus, probabilities[i].u_stimulus, probabilities[i].p_stimulus, probabilities[i].stimulus,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
-  }*/
+  }
 
 }
 
-Current_goal setTaskObjective(float rand)
+Current_goal setTaskObjectivePossibilistic(float rand)
 {
   Current_goal aux_objective;
   uint8_t id;
@@ -835,11 +843,37 @@ Current_goal setTaskObjective(float rand)
       id = missions[i].id_task;
       x = missions[i].x;
       y = missions[i].y;
-      yaw = 0.0;  // TODO es ports per a cada missio
-      //utility = getUtilityDD(id);
+      yaw = 0.0;  
       utility = missions[i].utility;
       
       break; // out of loop
+    }
+  }
+
+  aux_objective = {id, x, y, yaw, utility};
+  return aux_objective;
+
+}
+
+Current_goal setTaskObjectiveDeterministic()
+{
+  Current_goal aux_objective;
+  uint8_t id;
+  float x, y, yaw, utility;
+  float prob = 0.0;
+  
+  for(int i = 0 ; i < probabilities.size() ; i ++)  // set a task for the robot from available ones
+  {
+    if(prob <= probabilities[i].norm_probability){
+
+      prob = probabilities[i].norm_probability;
+
+      id = missions[i].id_task;
+      x = missions[i].x;
+      y = missions[i].y;
+      yaw = 0.0;  
+      utility = missions[i].utility;
+      
     }
   }
 
@@ -994,6 +1028,23 @@ void publishRotation(ros::Publisher* rotate_pub)
 
   rotate_pub->publish(vel);
 }
+
+void publishRobParamInfo(ros::Publisher& rob_param_pub)
+{
+  fuzzymar_multi_robot::robotParameters aux;
+
+  aux.id_robot = kobuki_id;
+  aux.max_vel = max_vel;
+  aux.UDD_factor = UDD_factor;
+  aux.alpha_utility = alpha_utility;
+  aux.beta_distance = beta_distance;
+  aux.gamma_ports = gamma_ports;
+  if(possibilistic){aux.selection_task = "possibilistic";}
+  else{aux.selection_task = "deterministic";}
+
+  rob_param_pub.publish(aux);
+}
+
 
 bool floatSimilarTo(float a, float b, float diff)
 {
