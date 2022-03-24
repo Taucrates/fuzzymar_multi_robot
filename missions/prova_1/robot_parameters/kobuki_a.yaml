@@ -1,6 +1,13 @@
+# alpha_utility: (float) influence factor of utility in the stimulus
+# beta_distance: (float) influence factor of distance in the stimulus
+# gamma_ports: 	 (float) influence factor of free/occupied ports in the stimulus
+# UDD_factor: 	 (float) factor related to variable utility function
+# speed_lim_v: 	 (float) max speed in X of the robot (parameter of velocity smoother node)
+# possibilistic: (bool)  define the type of decision algorithm (possibilistic/deterministic)
+
 alpha_utility: 2.0
 beta_distance: 3.5
 gamma_ports: 1.0
 UDD_factor: 0.07
-speed_lim_v: 0.4
-possibilistic: true
+speed_lim_v: 0.2
+possibilistic: True
