@@ -83,14 +83,14 @@ enum Kobuki_State {
 // GLOBAL VARIABLES
 int kobuki_id;
 
-bool possibilistic = false;
+bool possibilistic = true; // default -> possibilistic if false -> deterministic
 
-float alpha_utility = 2.0;
-float beta_distance = 1.0;
-float gamma_ports = 0.5;
+float alpha_utility = 2.0; // default 2.0
+float beta_distance = 3.0; // default 3.0
+float gamma_ports = 1.5;   // default 1.5
 
-float UDD_factor = 0.07;
-float max_vel = 0.2;
+float UDD_factor = 0.07;   // default 0.07
+float max_vel = 0.2;       // default 0.2
 float max_vel_aux = 0.2;
 
 std::string state_sub_topic = "/mission_state";
@@ -823,10 +823,10 @@ void setProbabilities(float thres, float u_max, float d_max)
     probabilities[j].accumulative = sum_norm;
   }
 
-  for(int i = 0 ; i < probabilities.size() ; i++)
+  /*for(int i = 0 ; i < probabilities.size() ; i++)
   {
     ROS_INFO("ID: %i , D_STIM: %5.3f, U_STIM: %f, P_STIM: %f, STIMULUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f", probabilities[i].id_task, probabilities[i].d_stimulus, probabilities[i].u_stimulus, probabilities[i].p_stimulus, probabilities[i].stimulus,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
-  }
+  }*/
 
 }
 

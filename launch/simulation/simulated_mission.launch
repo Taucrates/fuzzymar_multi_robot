@@ -1,13 +1,11 @@
 <!--  Launches node to place kobukis properly inside the simulation 
       and navigation nodes -->
 <launch>
-  <arg name="mission_name" default="default"/>
-  <arg name="alpha_utility" default="2.0"/>
-  <arg name="beta_distance" default="3.0"/>
-  <arg name="gamma_ports" default="1.5"/>
-  <arg name="UDD_factor" default="0.07"/>
-  <arg name="using_ports" default="True"/>
-  <arg name="possibilistic" default="True"/> <!-- if possibilistic == False the function to set the objective becomes DETERMINISTIC -->
+
+	<arg name="using_ports" default="True"/>
+
+	<arg name="mission_name" default="default"/>
+	<arg name="common_params" default="True"/>
 
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - -->
   <!-- Nodes to call service placing kobukis in simulation -->
@@ -43,60 +41,40 @@
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_a"/>
     <arg name="kobuki_id"  value="1"/>
-    <arg name="alpha_utility" value="$(arg alpha_utility)"/>
-    <arg name="beta_distance" value="$(arg beta_distance)"/>
-    <arg name="gamma_ports" value="$(arg gamma_ports)"/>
-    <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="mission_name" value="$(arg mission_name)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>  
+    <arg name="common_params" value="$(arg common_params)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
-    <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="kobuki_id"  value="2"/>
-    <arg name="alpha_utility" value="$(arg alpha_utility)"/>
-    <arg name="beta_distance" value="$(arg beta_distance)"/>
-    <arg name="gamma_ports" value="$(arg gamma_ports)"/>
-    <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="mission_name" value="$(arg mission_name)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>  
+    <arg name="common_params" value="$(arg common_params)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
-    <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_c"/>
     <arg name="kobuki_id"  value="3"/>
-    <arg name="alpha_utility" value="$(arg alpha_utility)"/>
-    <arg name="beta_distance" value="$(arg beta_distance)"/>
-    <arg name="gamma_ports" value="$(arg gamma_ports)"/>
-    <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="mission_name" value="$(arg mission_name)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>  
+    <arg name="common_params" value="$(arg common_params)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
-    <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include>
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_d"/>
     <arg name="kobuki_id"  value="4"/>
-    <arg name="alpha_utility" value="$(arg alpha_utility)"/>
-    <arg name="beta_distance" value="$(arg beta_distance)"/>
-    <arg name="gamma_ports" value="$(arg gamma_ports)"/>
-    <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="mission_name" value="$(arg mission_name)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>  
+    <arg name="common_params" value="$(arg common_params)"/>
     <arg name="using_ports" value="$(arg using_ports)"/>
-    <arg name="possibilistic" value="$(arg possibilistic)"/>
   </include> 
 
   <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_e"/>
     <arg name="kobuki_id"  value="5"/>
-    <arg name="alpha_utility" value="$(arg alpha_utility)"/>
-    <arg name="beta_distance" value="$(arg beta_distance)"/>
-    <arg name="gamma_ports" value="$(arg gamma_ports)"/>
-    <arg name="UDD_factor" value="$(arg UDD_factor)"/>
-    <arg name="mission_name" value="$(arg mission_name)"/>
-    <arg name="using_ports" value="$(arg using_ports)"/> 
-    <arg name="possibilistic" value="$(arg possibilistic)"/>
+    <arg name="mission_name" value="$(arg mission_name)"/>  
+    <arg name="common_params" value="$(arg common_params)"/>
+    <arg name="using_ports" value="$(arg using_ports)"/>
   </include>
 </launch>

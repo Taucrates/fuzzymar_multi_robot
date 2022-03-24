@@ -5,7 +5,7 @@
   <arg name="rviz_file" default="fuzzymar_visualization"/>
   <arg name="map_name" default="srvlab_clean"/>
   <arg name="map_file" default="$(find fuzzymar_multi_robot)/maps/$(arg map_name).yaml"/>
-  <arg name="mission_file_name" default="default.txt"/>
+  <arg name="mission_name" default="default"/>
   <arg name="using_ports" default="True"/>
   <arg name="num_ports" default="5"/>
   
@@ -27,7 +27,7 @@
 
     <!-- Monitor -->
     <include file="$(find fuzzymar_multi_robot)/launch/nodes/monitor_ports.launch">
-		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_file_name)"/>
+		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/$(arg mission_name).txt"/>
 	  </include>
 
     <!-- Task Ports -->
@@ -45,7 +45,7 @@
 
     <!-- Monitor -->
     <include file="$(find fuzzymar_multi_robot)/launch/nodes/monitor.launch">
-		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_file_name)"/>
+		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/$(arg mission_name).txt"/>
 	  </include>
 
   </group>

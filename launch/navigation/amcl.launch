@@ -9,7 +9,7 @@
       <!-- amcl configuration -->
       <rosparam file="$(find fuzzymar_multi_robot)/config/amcl.yaml" command="load"/>
       <!-- initial pose given a mission -->
-      <rosparam file="$(find fuzzymar_multi_robot)/missions/initial_poses/$(arg mission_name)/$(arg robot_name).yaml" command="load"/>
+      <rosparam file="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/initial_poses/$(arg robot_name).yaml" command="load"/>
 
       <param name="odom_frame_id"  value="$(arg robot_name)/odom"/>
       <param name="base_frame_id"  value="$(arg robot_name)/base_footprint"/>

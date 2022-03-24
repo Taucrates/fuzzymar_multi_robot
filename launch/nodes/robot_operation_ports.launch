@@ -3,27 +3,35 @@
  -->
 <launch>
   <arg name="robot_name" default="kobuki"/>
-  <arg name="kobuki_id" default="1"/>
-  <arg name="mission_name" default="default"/>
-  <arg name="alpha_utility" default="2.0"/>  
-  <arg name="beta_distance" default="3.0"/>
-  <arg name="gamma_ports" default="1.5"/>
-  <arg name="UDD_factor" default="0.07"/> 
-  <arg name="possibilistic" default="True"/>  <!-- if possibilistic == False the function to set the objective becomes DETERMINISTIC -->
+	<arg name="kobuki_id" default="1"/>
 
-  <!-- Multi master slave -->
-  <group ns="$(arg robot_name)">
-    <node pkg="fuzzymar_multi_robot" type="robot_operation_ports" name="robot_operation_ports" output="screen" >
+	<arg name="mission_name" default="default"/>
+	<arg name="common_params" default="True"/>
 
-      <rosparam command="load" file="$(find fuzzymar_multi_robot)/missions/robot_parameters/$(arg mission_name)/$(arg robot_name).yaml"/>
-      
-      <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />
-      <!--<param name="alpha_utility" type="double" value="$(arg alpha_utility)" />
-      <param name="beta_distance" type="double" value="$(arg beta_distance)"/>
-      <param name="gamma_ports" type="double" value="$(arg gamma_ports)" />
-      <param name="UDD_factor" type="double" value="$(arg UDD_factor)" /> -->
-      <param name="possibilistic" type="bool" value="$(arg possibilistic)" />
+  <!-- All robots have the same parameters defined at: missions/$(arg mission_name)/robot_parameters/common_params.yaml-->
+  <group if="$(arg common_params)"> 
+		<!-- Robot Operation -->
+    <group ns="$(arg robot_name)">
+      <node pkg="fuzzymar_multi_robot" type="robot_operation_ports" name="robot_operation_ports" output="screen" >
+        
+        <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />
+        <rosparam command="load" file="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/robot_parameters/common_params.yaml"/>
 
-    </node>
-  </group>
-</launch>
+      </node>
+    </group>
+	</group>
+
+  <!-- Each robot has its own parameters defined at: missions/$(arg mission_name)/robot_parameters/$(arg robot_name).yaml-->
+  <group unless="$(arg common_params)">  
+		<!-- Robot Operation -->
+    <group ns="$(arg robot_name)">
+      <node pkg="fuzzymar_multi_robot" type="robot_operation_ports" name="robot_operation_ports" output="screen" >
+
+        <rosparam command="load" file="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/robot_parameters/$(arg robot_name).yaml"/>        
+        <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />  
+
+      </node>
+    </group>
+	</group>
+
+</launch> 
