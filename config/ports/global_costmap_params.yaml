@@ -7,7 +7,7 @@ global_costmap:
 
   always_send_full_costmap: true
 
-  inflation_radius: 0.85
+  inflation_radius: 1.05
   cost_scaling_factor: 10
 
   #width: 30.0

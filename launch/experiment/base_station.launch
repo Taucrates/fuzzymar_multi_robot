@@ -27,7 +27,7 @@
 
     <!-- Monitor -->
     <include file="$(find fuzzymar_multi_robot)/launch/nodes/monitor_ports.launch">
-		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/$(arg mission_name).txt"/>
+		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/task_list.txt"/>
 	  </include>
 
     <!-- Task Ports -->
@@ -45,7 +45,7 @@
 
     <!-- Monitor -->
     <include file="$(find fuzzymar_multi_robot)/launch/nodes/monitor.launch">
-		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/$(arg mission_name).txt"/>
+		  <arg name="mission_path_file" value="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/task_list.txt"/>
 	  </include>
 
   </group>

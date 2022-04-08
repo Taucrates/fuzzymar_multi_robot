@@ -4,7 +4,7 @@
 #footprint: [[-0.2, -0.2], [-0.2, 0.2], [0.2, 0.2], [0.2, -0.2]]
 robot_radius: 0.2 # change from 0.6 to 0.3. kobuki_b will have 0.6
 
-inflation_radius: 0.12
+inflation_radius: 0.08
 cost_scaling_factor: 5.5
 
 observation_sources: laser_scan

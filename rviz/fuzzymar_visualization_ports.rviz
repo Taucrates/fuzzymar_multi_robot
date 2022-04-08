@@ -1048,7 +1048,9 @@ Visualization Manager:
       Marker Topic: visualization_marker_array
       Name: MarkerArray
       Namespaces:
-        {}
+        ports: true
+        tasks: true
+        tasks_name: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -1086,9 +1088,9 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.6895148754119873
-        Y: -1.7706266641616821
-        Z: 1.9548254013061523
+        X: 3.699408531188965
+        Y: -1.1909836530685425
+        Z: 1.9548346996307373
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

@@ -84,6 +84,8 @@ enum Kobuki_State {
 int kobuki_id;
 
 bool possibilistic = true; // default -> possibilistic if false -> deterministic
+bool dynamic_max = true; // if true d_max && u_max will be variable
+bool has_worked = false; // robot has worked
 
 float alpha_utility = 2.0; // default 2.0
 float beta_distance = 3.0; // default 3.0
@@ -137,12 +139,15 @@ bool calculated_task = false;
 float distance(float x1, float y1, float x2, float y2); // calculate the distance between 2 points in 2D
 bool disponiblePorts(); // disponible ports comprovation
 int totalNumPorts(); // counts the total num of ports assigned, by task_ports node, in the mission
-float getMaxDist(); // get the threshold == 2/max_dist(between tasks)
-float getUmax(); // get the max dif between all the tasks
+float getMaxDist(); // Get the max distance between tasks and between robot and tasks
+float getMaxDistVAR(); // get the max distance between robot and tasks
+float getUtilityDD(int id_task); // get the Utility of a task
+float getUmax(); // get the max U of all the tasks
+float getUmaxDL(); // get the max U of all the tasks taking account the U variable depending on DL
 float getDistanceStimulus(int task); // get the current robot stimulus for a given task
 float getUtilityStimulus(int task); // get the utility stimulus
 float getUtility_w_DeadlineStimulus(int task); // get the utility stimulus taking into account the deadline
-void setProbabilities(float thres, float u_max, float d_max); // build the probabilities vector {id_task, stimulus, probability}
+void setProbabilities(float thres, float d_max, float u_max); // build the probabilities vector {id_task, stimulus, probability}
 
 Current_goal setTaskObjectivePossibilistic(float rand); // return the global goal {task_id, x, y, yaw} to publish to /kobuki_x/move_base_simple/goal
 Current_goal setTaskObjectiveDeterministic();
@@ -286,9 +291,10 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;
 
-  std::random_device rd;
+  /*std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(0,1.0);
+  std::uniform_real_distribution<> dis(0,1.0);*/
+  
 
   // Subscribers
   ros::Subscriber mission_sub = n.subscribe(state_sub_topic, 1000, missionStateCallback);
@@ -311,6 +317,10 @@ int main(int argc, char **argv)
   n.getParam("robot_operation_ports/gamma_ports", gamma_ports);
   n.getParam("robot_operation_ports/UDD_factor", UDD_factor);
   n.getParam("robot_operation_ports/possibilistic", possibilistic);
+  n.getParam("robot_operation_ports/dynamic_max", dynamic_max);
+
+
+  srand(kobuki_id); // define the seed of the random number using the kobuki_id
 
   ros::param::get("velocity_smoother/speed_lim_v", max_vel);
   max_vel_aux = max_vel;
@@ -341,8 +351,11 @@ int main(int argc, char **argv)
 
   printf("\nKobuki_%i has an alpha_utility: %5.2f , beta_distance: %5.2f, gamma_ports: %5.2f , UDD_factor: %6.4f, max_vel: %5.2f ", kobuki_id, alpha_utility, beta_distance, gamma_ports, UDD_factor, max_vel);
   
-  if(possibilistic){printf(" POSSIBILISTIC\n");} 
-  else{printf(" DETERMINISTIC\n");}
+  if(possibilistic){printf(" POSSIBILISTIC ");} 
+  else{printf(" DETERMINISTIC ");}
+
+  if(dynamic_max){printf(" DYNAMIC_MAX\n");} 
+  else{printf(" STATIC_MAX\n");}
 
   while (ros::ok())
   {
@@ -350,6 +363,7 @@ int main(int argc, char **argv)
     // KOBUKI_STATE UPDATE
     if(status == 3 && kobuki_state == Navigating) { // TODO es possible que haguem d'afegir status == 3 && kobuki_state == Computing per si sa tasca està a la posició actual del robot (no s'ha de moure per anar a la tasca)
       kobuki_state = Start_task;
+      has_worked = true;
       init_task = ros::Time::now();
       //ROS_INFO("Start_task");
     } else if((status == 1 && kobuki_state == Working) || (status == 1 && kobuki_state == Start_task)) {
@@ -373,10 +387,10 @@ int main(int argc, char **argv)
     if(new_mission_state) // when missions is updated
     {
       
-      if(first_loop){
-        max_dist = getMaxDist();
-        threshold =  4 / max_dist;// the threshold is gotten
+      if(first_loop){ 
         utility_max = getUmax();
+        threshold =  4 / getMaxDist();// the threshold is gotten
+        max_dist = getMaxDist();
 
         publishRobParamInfo(rob_param_pub);
 
@@ -405,11 +419,12 @@ int main(int argc, char **argv)
 
         if(first_loop || aux_task_number != missions.size() || recalculate){  // NOW ONLY RECALCULATE A POSSIBLE NEW GOAL WHEN A TASK IS END ¿¿¿¿¿¿ HOW TO DO ??????
 
-          setProbabilities(threshold, utility_max, max_dist); // the probabilities for each task are obtained
+          setProbabilities(threshold, max_dist, utility_max); // the probabilities for each task are obtained
 
           if(possibilistic)
           {
-            random = dis(gen);
+            //random = dis(gen);
+            random = float((float)rand() / (float)RAND_MAX);
             current_goal = setTaskObjectivePossibilistic(random); // set de current task (task objective) for the robot
 
           } else {
@@ -418,7 +433,6 @@ int main(int argc, char **argv)
 
           }
           
-
           setPortPriority(); // the port priority for the current task (using distance) is setted 
 
           publishTaskObjective(&task_ports_pub); // the task objective and its own port priority is published
@@ -601,14 +615,23 @@ float getMaxDist()
     
     for (int j = 0 ; j < missions.size() ; j++)
     {
-      if(first_aux){
-        
-        dist = distance(current_position.first, current_position.second, missions[j].x, missions[j].y);
-        
-      } else {
-        
+      if(has_worked) // when robot has worked in some task max_dist is just calculed using tasks location (for dynamic_max == true)
+      {
+
         dist = distance(missions[i].x, missions[i].y, missions[j].x, missions[j].y);
-        
+
+      } else {
+
+        if(first_aux){
+          
+          dist = distance(current_position.first, current_position.second, missions[j].x, missions[j].y);
+          
+        } else {
+          
+          dist = distance(missions[i].x, missions[i].y, missions[j].x, missions[j].y);
+          
+        }
+
       }
 
       if(aux_dist < dist)
@@ -617,6 +640,30 @@ float getMaxDist()
       }
     }
     first_aux = false;
+  }
+  
+  return aux_dist;
+}
+
+float getMaxDistVAR()
+{
+  float aux_dist = 0.0;
+  float dist = 0.0;
+
+  for(int i = 0 ; i < missions.size()  ; i++)
+  {
+    
+    for (int j = 0 ; j < missions.size() ; j++)
+    {
+     
+      dist = distance(current_position.first, current_position.second, missions[j].x, missions[j].y);
+
+      if(aux_dist < dist)
+      {
+        aux_dist = dist;
+      }
+    }
+    
   }
   
   return aux_dist;
@@ -631,6 +678,21 @@ float getUmax()
     if(missions[i].utility > u_max)
     {
       u_max = missions[i].utility;
+    }
+  }
+  
+  return u_max;
+}
+
+float getUmaxDL()
+{
+  float u_max = 0.0;
+
+  for(int i = 0 ; i < missions.size() ; i++)
+  {
+    if(getUtilityDD(missions[i].id_task) > u_max)
+    {
+      u_max = getUtilityDD(missions[i].id_task);
     }
   }
   
@@ -704,7 +766,15 @@ float getUtilityDD(int id_task)
     } 
   }
 
-  return utility_max ;
+  if(dynamic_max)
+    {
+      return getUmaxDL();
+
+    } else {
+
+      return utility_max;
+    }
+  
 }
 
 float getUtility_w_DeadlineStimulus(int task)
@@ -765,15 +835,15 @@ float getPortsStimulus(int task)
   return stim;
 }
 
-void setProbabilities(float thres, float u_max, float d_max)
+void setProbabilities(float thres, float d_max, float u_max)
 {
   probabilities.clear();
 
   uint8_t id;
   float stim, prob, norm_prob, accumul;
-  float distance_stim = 0.0;
-  float utility_stim = 0.0;
-  float ports_stim = 0.0;
+  float distance_stim, d_stim_norm = 0.0;
+  float utility_stim, u_stim_norm = 0.0;
+  float ports_stim, p_stim_norm = 0.0;
   float sum_prob, sum_norm;
   sum_prob = 0.0;
   sum_norm = 0.0;
@@ -784,17 +854,29 @@ void setProbabilities(float thres, float u_max, float d_max)
   {
     id = missions[i-1].id_task;
 
-    // OLD SIMPLY VERSION --> stim = getDistanceStimulus(i); // i+1 because we give the id task not the vector position
-    //                        prob = (stim*stim) / ((stim*stim) + (thres*thres));
-
-    //printf("Kobuki_%i -> Task_%i has Ui: %f and Uj: %f, Ujmax: %f  Result: ", kobuki_id, id, current_goal.utility, getUtilityDD(id), missions[i-1].utility);
-
-    distance_stim = getDistanceStimulus(i) / max_vel;
     utility_stim = getUtility_w_DeadlineStimulus(i);
+    distance_stim = getDistanceStimulus(i) / max_vel;
     ports_stim = getPortsStimulus(i); // using ports stimulus
-                                    
+
+    // VARIABLE D_MAX && U_MAX 
+    /*
+    
+    */
+    // STATIC D_MAX && U_MAX
+    if(dynamic_max)
+    {
+      u_stim_norm = (1/getUmaxDL()) * utility_stim;
+      d_stim_norm = (max_vel/getMaxDist()) * distance_stim;
+      p_stim_norm = ports_stim;
+    } else {
+      u_stim_norm = (1/u_max) * utility_stim;
+      d_stim_norm = (max_vel/d_max) * distance_stim;
+      p_stim_norm = ports_stim;
+    }
+    
+
     //stim = (alpha_utility * (d_max/u_max)) * utility_stim + beta_distance * distance_stim + gamma_ports * ports_stim; // 
-    stim = (alpha_utility/u_max) * utility_stim + beta_distance * (max_vel/d_max) * distance_stim + gamma_ports * ports_stim; 
+    stim = alpha_utility * u_stim_norm + beta_distance * d_stim_norm + gamma_ports * p_stim_norm; 
     //prob = ports_stim * ((thres*thres) / ((stim*stim) + (thres*thres))); // using ports stimulus
     //printf("Su: %f Sd: %f Sp: %f\n", (1/u_max) * utility_stim, (max_vel/d_max) * distance_stim, ports_stim);
     if(ports_stim < -0.1) // if task has not free ports prob has to be 0
@@ -812,7 +894,7 @@ void setProbabilities(float thres, float u_max, float d_max)
     accumul = 0.0;
     sum_prob += prob;
 
-    Probability aux_prob = {id, distance_stim, utility_stim, ports_stim, stim, prob, norm_prob, accumul};
+    Probability aux_prob = {id, d_stim_norm, u_stim_norm, p_stim_norm, stim, prob, norm_prob, accumul};
 
     probabilities.push_back(aux_prob);
   }
