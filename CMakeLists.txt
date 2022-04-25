@@ -61,15 +61,19 @@ catkin_package(
 ###########
 
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
+
+## libraries
+add_library(libraries 
+            src/stimulus.cpp
+            )
+target_link_libraries(libraries ${catkin_LIBRARIES})
 
 ## nodes
 add_executable(monitor src/monitor.cpp)
 target_link_libraries(monitor ${catkin_LIBRARIES})
-
-add_executable(robot_operation src/robot_operation.cpp)
-target_link_libraries(robot_operation ${catkin_LIBRARIES})
 
 add_executable(task_ports src/task_ports.cpp)
 target_link_libraries(task_ports ${catkin_LIBRARIES})
@@ -77,15 +81,22 @@ target_link_libraries(task_ports ${catkin_LIBRARIES})
 add_executable(monitor_ports src/monitor_ports.cpp)
 target_link_libraries(monitor_ports ${catkin_LIBRARIES})
 
-add_executable(robot_operation_ports src/robot_operation_ports.cpp)
-target_link_libraries(robot_operation_ports ${catkin_LIBRARIES})
+add_executable(det_robot_operation_ports src/det_robot_operation_ports.cpp)
+target_link_libraries(det_robot_operation_ports
+                      libraries
+                      ${catkin_LIBRARIES})
+
+add_executable(pos_robot_operation_ports src/pos_robot_operation_ports.cpp)
+target_link_libraries(pos_robot_operation_ports
+                      libraries
+                      ${catkin_LIBRARIES})
 
 ## deps
 add_dependencies(monitor fuzzymar_multi_robot_generate_messages_cpp)
-add_dependencies(robot_operation fuzzymar_multi_robot_generate_messages_cpp)
 add_dependencies(task_ports fuzzymar_multi_robot_generate_messages_cpp)
 add_dependencies(monitor_ports fuzzymar_multi_robot_generate_messages_cpp)
-add_dependencies(robot_operation_ports fuzzymar_multi_robot_generate_messages_cpp)
+add_dependencies(det_robot_operation_ports fuzzymar_multi_robot_generate_messages_cpp)
+add_dependencies(pos_robot_operation_ports fuzzymar_multi_robot_generate_messages_cpp)
 
 ## dynamic_reconfigure deps
-add_dependencies(robot_operation_ports fuzzymar_multi_robot_gencfg)
+add_dependencies(pos_robot_operation_ports fuzzymar_multi_robot_gencfg)

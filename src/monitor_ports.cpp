@@ -28,7 +28,7 @@
 #include <ctime>
 #include <time.h>
 
-#define LOOPHZ 5
+#define LOOP_RATE 10
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
@@ -149,8 +149,8 @@ void willingPortCallback(const fuzzymar_multi_robot::taskObjective::ConstPtr& wi
         if(missions[i].ports[(willing->port_priority[j])-1].id_kobuki == 0)
         {
           missions[i].ports[(willing->port_priority[j])-1].id_kobuki = willing->id_kobuki;
-          printf("Kobuki_%i set the port %i of the task %i as objective.\n", willing->id_kobuki, willing->port_priority[j], willing->id_task);
-          printf("Kobuki ID in missions: %i\n", missions[i].ports[(willing->port_priority[j])-1].id_kobuki);
+          //printf("Kobuki_%i set the port %i of the task %i as objective.\n", willing->id_kobuki, willing->port_priority[j], willing->id_task);
+          //printf("Kobuki ID in missions: %i\n", missions[i].ports[(willing->port_priority[j])-1].id_kobuki);
           break;
         }
       }
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
   std::string folder_directory = "/home/tonitauler/catkin_ws/src/fuzzymar_multi_robot/data/";
   std::string file_name = folder_directory + current_date() + ".csv";
 
-  ros::Rate loop_rate(LOOPHZ);
+  ros::Rate loop_rate(LOOP_RATE);
 
   while (ros::ok())
   {
@@ -501,7 +501,7 @@ void missionsUpdate(ros::Publisher& time_pub)
   {
     for(uint16_t i = 0 ; i < missions.size() ; i++)
     {
-      // OLD VERSION missions[i].weight -= (float)missions[i].doing_task * (1.0/(float)LOOPHZ); // the weight is decreased due to robot/s work
+      // OLD VERSION missions[i].weight -= (float)missions[i].doing_task * (1.0/(float)LOOP_RATE); // the weight is decreased due to robot/s work
       
       /*if(missions[i].deadline > 0.0)
       {
@@ -513,7 +513,7 @@ void missionsUpdate(ros::Publisher& time_pub)
       missions[i].weight -= (float)missions[i].doing_task * (time2Float(ros::Time::now()) - time2Float(aux_time));
 
       ROS_DEBUG("Task %i has weight: %f", missions[i].id_task, missions[i].weight);
-      if(missions[i].weight <= 0)
+      if(missions[i].weight <= (0.5/(float)LOOP_RATE)) // (0.5/LOOP_RATE) to avoid infim weights
       {
         // WRITE IN TXT
         //*outfile << std::to_string(missions[i].id_task) << ", " << std::to_string(ros::Time::now().toSec() - mission_time.toSec()) << std::endl;

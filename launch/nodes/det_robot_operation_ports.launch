@@ -1,0 +1,37 @@
+<!--
+  TODO
+ -->
+<launch>
+  <arg name="robot_name" default="kobuki"/>
+	<arg name="kobuki_id" default="1"/>
+
+	<arg name="mission_name" default="default"/>
+	<arg name="common_params" default="True"/>
+
+  <!-- All robots have the same parameters defined at: missions/$(arg mission_name)/robot_parameters/common_params.yaml-->
+  <group if="$(arg common_params)"> 
+		<!-- Robot Operation -->
+    <group ns="$(arg robot_name)">
+      <node pkg="fuzzymar_multi_robot" type="det_robot_operation_ports" name="det_robot_operation_ports" output="screen" >
+        
+        <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />
+        <rosparam command="load" file="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/robot_parameters/common_params.yaml"/>
+
+      </node>
+    </group>
+	</group>
+
+  <!-- Each robot has its own parameters defined at: missions/$(arg mission_name)/robot_parameters/$(arg robot_name).yaml-->
+  <group unless="$(arg common_params)">  
+		<!-- Robot Operation -->
+    <group ns="$(arg robot_name)">
+      <node pkg="fuzzymar_multi_robot" type="det_robot_operation_ports" name="det_robot_operation_ports" output="screen" >
+
+        <rosparam command="load" file="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/robot_parameters/$(arg robot_name).yaml"/>        
+        <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />  
+
+      </node>
+    </group>
+	</group>
+
+</launch> 

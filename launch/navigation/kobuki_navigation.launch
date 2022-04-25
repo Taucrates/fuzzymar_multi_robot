@@ -3,7 +3,7 @@
 	<arg name="robot_name" default="kobuki"/>
 	<arg name="kobuki_id" default="1"/>
 
-	<arg name="using_ports" default="True"/>
+	<arg name="deterministic" default="True"/>
 
 	<arg name="mission_name" default="default"/>
 	<arg name="common_params" default="True"/>
@@ -28,14 +28,14 @@
 	</include>
 
 	<!-- Robot Operation-->
-	<group if="$(arg using_ports)">  <!-- We'll use ports so the robot_operation_ports.launch will be executed -->
+	<group if="$(arg deterministic)">  <!-- We'll use ports so the robot_operation_ports.launch will be executed -->
 
 		<!-- Move_base-->
 		<include file="$(find fuzzymar_multi_robot)/launch/navigation/move_base_ports.launch" >
 			<arg name="robot_name" value="$(arg robot_name)"/>
 		</include>
 
-		<include file="$(find fuzzymar_multi_robot)/launch/nodes/robot_operation_ports.launch" >
+		<include file="$(find fuzzymar_multi_robot)/launch/nodes/det_robot_operation_ports.launch" >
 			<arg name="robot_name" value="$(arg robot_name)"/>
 			<arg name="kobuki_id" value="$(arg kobuki_id)"/>
 			<arg name="mission_name" value="$(arg mission_name)"/>
@@ -44,16 +44,18 @@
 
 	</group>
 
-	<group unless="$(arg using_ports)">  <!-- We won't use ports so the monitor.launch will be executed -->
+	<group unless="$(arg deterministic)">  <!-- We won't use ports so the monitor.launch will be executed -->
 
 		<!-- Move_base-->
-		<include file="$(find fuzzymar_multi_robot)/launch/navigation/move_base.launch" >
+		<include file="$(find fuzzymar_multi_robot)/launch/navigation/move_base_ports.launch" >
 			<arg name="robot_name" value="$(arg robot_name)"/>
 		</include>
 
-		<include file="$(find fuzzymar_multi_robot)/launch/nodes/robot_operation.launch" >
+		<include file="$(find fuzzymar_multi_robot)/launch/nodes/pos_robot_operation_ports.launch" >
 			<arg name="robot_name" value="$(arg robot_name)"/>
 			<arg name="kobuki_id" value="$(arg kobuki_id)"/>
+			<arg name="mission_name" value="$(arg mission_name)"/>
+			<arg name="common_params" value="$(arg common_params)"/>
 		</include>
 
 	</group>

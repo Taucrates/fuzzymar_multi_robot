@@ -12,7 +12,7 @@
   <group if="$(arg common_params)"> 
 		<!-- Robot Operation -->
     <group ns="$(arg robot_name)">
-      <node pkg="fuzzymar_multi_robot" type="robot_operation_ports" name="robot_operation_ports" output="screen" >
+      <node pkg="fuzzymar_multi_robot" type="pos_robot_operation_ports" name="pos_robot_operation_ports" output="screen" >
         
         <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />
         <rosparam command="load" file="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/robot_parameters/common_params.yaml"/>
@@ -25,7 +25,7 @@
   <group unless="$(arg common_params)">  
 		<!-- Robot Operation -->
     <group ns="$(arg robot_name)">
-      <node pkg="fuzzymar_multi_robot" type="robot_operation_ports" name="robot_operation_ports" output="screen" >
+      <node pkg="fuzzymar_multi_robot" type="pos_robot_operation_ports" name="pos_robot_operation_ports" output="screen" >
 
         <rosparam command="load" file="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/robot_parameters/$(arg robot_name).yaml"/>        
         <param name="kobuki_id" type="int" value="$(arg kobuki_id)" />  

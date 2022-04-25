@@ -8,7 +8,7 @@ case "$1" in
         echo " "
         echo "options:"
         echo "-h, --help          show brief help"
-        echo "-m, --mission       loads mission name to se initial position and parameters of the robot"
+        echo "-m, --mission       loads mission name to set initial position and parameters of the robot"
         exit 0
         ;;
     -m|--mission)
