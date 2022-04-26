@@ -10,6 +10,7 @@
 #include "std_msgs/String.h"
 #include "std_msgs/Empty.h"
 #include "nav_msgs/Path.h"
+#include "nav_msgs/Odometry.h"
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "actionlib_msgs/GoalID.h"
@@ -210,6 +211,19 @@ void endMissionCallback(const std_msgs::Empty::ConstPtr& end_msg)
   end_mission = true;
 }
 
+void odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
+{
+  //ROS_INFO("odomMSG");
+  if(doubleSimilarTo((double)odom_msg->twist.twist.linear.x, (double)0.0, 0.001) && odom_msg->twist.twist.angular.z < 0.001 && kobuki_state == Navigating)
+  {
+    
+    count_stuck++;
+    //ROS_INFO("*************************** MAY STUCK ****************************************");
+    if(count_stuck > 5*LOOP_RATE){sure_stuck = true; printf("***************************** ROBOT STUCKED *******************************\n");}
+  }
+
+}
+
 /********************************************************************************************
 ***************************************** MAIN **********************************************
 ********************************************************************************************/
@@ -234,6 +248,7 @@ int main(int argc, char **argv)
   ros::Subscriber pose_sub = n.subscribe(pose_sub_topic, 1000, actualPoseCallback);
   ros::Subscriber goal_status_sub = n.subscribe(goal_status_sub_topic, 1000, statusGoalCallback);
   ros::Subscriber end_mission_sub = n.subscribe("/mission_accomplished", 1000, endMissionCallback);
+  ros::Subscriber odom_sub = n.subscribe("odom", 1, odomCallback);
 
   // Publishers
   ros::Publisher goal_pub = n.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 10);
@@ -377,6 +392,7 @@ int main(int argc, char **argv)
         {
           printf("Kobuki_%i publish port %i of task %i localized on -> x: %5.2f y: %5.2f yaw: %5.2f\n", kobuki_id, current_port.id_port, current_goal.id_task, current_port.x, current_port.y, current_port.yaw);
           publishPortGoal(&goal_pub, current_port); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
+          clearClient.call(srv);
 
           port_assigned = false;
           calculated_task = false;
@@ -444,33 +460,40 @@ int main(int argc, char **argv)
       
     }
 
-    if(loop_counter >= 10*LOOP_RATE || kobuki_state == Stuck){ // if the robot abort the mission or each 10 secs, clear the costmaps and publish again the objective
+    // UNSTUCK BEHAVIOR
+
+    if(loop_counter >= 10*LOOP_RATE || kobuki_state == Stuck || sure_stuck){ // if the robot abort the mission or each 10 secs, clear the costmaps and publish again the objective
       
 
       //if(kobuki_state == Stuck){publishGoal(&goal_pub, current_goal);} // republish the objective
-      if(kobuki_state == Stuck)
+      if(kobuki_state == Stuck || sure_stuck)
       {
         printf("Kobuki_%i executing unstuck behavior.\n", kobuki_id);
         //for(int i = 0 ; i < 50 ; i++){
+          actionlib_msgs::GoalID cancel_msg;
+          cancel_navigation_pub.publish(cancel_msg);
           publishRotation(&rotate_pub);
         //}
         rotate_publications++;
-        if(rotate_publications > (1.5708*10))
+        if(rotate_publications > (1.5708*LOOP_RATE))
         {
           publishPortGoal(&goal_pub, current_port);
           rotate_publications = 0;
+          sure_stuck = false;
+          //may_stuck = false;
+          count_stuck = 0;
           
-          clearClient.call(srv);
+          //clearClient.call(srv);
         }
-        loop_counter = 0;
+        //loop_counter = 0;
         
       } else {
 
         clearClient.call(srv);
-
+        loop_counter = 0;
       }
       
-      loop_counter = 0;
+      
     }
 
     f = boost::bind(&callback, _1, _2);

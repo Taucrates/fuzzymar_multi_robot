@@ -26,6 +26,7 @@
 
 float distance(float x1, float y1, float x2, float y2); // calculate the distance between 2 points in 2D
 int totalNumPorts(); // counts the total num of ports assigned, by task_ports node, in the mission
+bool doubleSimilarTo(double a, double b, double diff);
 
 float getMaxDist(); // Get the max distance between tasks and between robot and tasks
 //float getMaxDistVAR(std::vector<Task> missions, std::pair<float, float> current_position); // get the max distance between robot and tasks

@@ -14,6 +14,8 @@
 #include <vector>
 #include <iomanip>
 #include <random>
+#include <chrono>
+#include <thread>
 
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include <fuzzymar_multi_robot/task_w_ports.h>
@@ -91,12 +93,17 @@ float workload = 1.0;      // weight reduced per second
 float calc_stim_time = 1.0;     // how often the robot calculate the stimulus
 bool calc_stim_way = true;      // true if the robot have to calculate running through tasks, false otherwise
 
-  // GENERAL
+// GENERAL
 
 ros::Time mission_time; // the time at wich the mission starts
 
 std::vector<Task> missions;
 std::pair<float, float> current_position; // current position of the robot
 Current_goal current_goal; // current task declared as objective {task_id, x, y, yaw}
+Current_goal task_Ti;      // current task where robot has already arrived
 std::vector<Probability> probabilities; // vector where probabilities are saved
 
+// FLAG
+//bool may_stuck = false;   // indicates if the robot is stopped (maybe stucked)
+bool sure_stuck = false;  // indicates if the robot is stucked (may_stuck && !Working)
+int count_stuck = 0;

@@ -19,8 +19,8 @@
       <rosparam file="$(find fuzzymar_multi_robot)/config/ports/dwa_local_planner_params.yaml" command="load" />
       
 
-      <param name="controller_frequency" value="5.0" />
-      <param name="oscillation_timeout" value="1.0" /> <!-- When DWA is not able to produce a path waits 'oscillation_timeout' secs to begin recovery behaviors-->
+      <param name="controller_frequency" value="10.0" />
+      <param name="oscillation_timeout" value="0.0" /> <!-- When DWA is not able to produce a path waits 'oscillation_timeout' secs to begin recovery behaviors-->
       <param name="max_planning_retries" value="-1" /> 
       <param name="recovery_behavior_enabled" value="False" /> 
       <param name="clearing_rotation_allowed" value="False" /> 

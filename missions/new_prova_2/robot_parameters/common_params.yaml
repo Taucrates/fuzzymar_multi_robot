@@ -14,8 +14,8 @@ beta_distance: 1.0
 gamma_ports: 1.0
 UDD_factor: 0.07
 speed_lim_v: 0.25
-calc_stim_time: 1.0
-calc_stim_way: True
+calc_stim_time: 2.0
+calc_stim_way: False
 sdl_method: 1
 agregation_type: 2
 w1: 0.3333333333333333333333333333

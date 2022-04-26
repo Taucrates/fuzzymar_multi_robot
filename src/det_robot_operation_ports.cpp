@@ -9,6 +9,7 @@
 #include <std_srvs/Empty.h>
 #include "std_msgs/String.h"
 #include "std_msgs/Empty.h"
+#include "nav_msgs/Odometry.h"
 #include "nav_msgs/Path.h"
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -193,6 +194,19 @@ void endMissionCallback(const std_msgs::Empty::ConstPtr& end_msg)
   end_mission = true;
 }
 
+void odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
+{
+  //ROS_INFO("odomMSG");
+  if(doubleSimilarTo((double)odom_msg->twist.twist.linear.x, (double)0.0, 0.001) && odom_msg->twist.twist.angular.z < 0.001 && kobuki_state == Navigating)
+  {
+    
+    count_stuck++;
+    //ROS_INFO("*************************** MAY STUCK ****************************************");
+    if(count_stuck > 5*LOOP_RATE){sure_stuck = true; printf("***************************** ROBOT STUCKED *******************************\n");}
+  }
+
+}
+
 /********************************************************************************************
 ***************************************** MAIN **********************************************
 ********************************************************************************************/
@@ -217,6 +231,7 @@ int main(int argc, char **argv)
   ros::Subscriber pose_sub = n.subscribe(pose_sub_topic, 1000, actualPoseCallback);
   ros::Subscriber goal_status_sub = n.subscribe(goal_status_sub_topic, 1000, statusGoalCallback);
   ros::Subscriber end_mission_sub = n.subscribe("/mission_accomplished", 1000, endMissionCallback);
+  ros::Subscriber odom_sub = n.subscribe("odom", 1, odomCallback);
 
   // Publishers
   ros::Publisher goal_pub = n.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 10);
@@ -253,6 +268,7 @@ int main(int argc, char **argv)
   bool first_loop = true; 
 
   current_goal.id_task = 0; // means not decided task
+  task_Ti.id_task = 0;
 
   uint8_t count_no_port_assigned_msg = 0;
   bool recalculate = false;
@@ -318,11 +334,13 @@ int main(int argc, char **argv)
     if(status == 3 && kobuki_state == Navigating) { // TODO es possible que haguem d'afegir status == 3 && kobuki_state == Computing per si sa tasca està a la posició actual del robot (no s'ha de moure per anar a la tasca)
       kobuki_state = Start_task;
       has_worked = true;
+      task_Ti = current_goal;
       init_task = ros::Time::now();
       //ROS_INFO("Start_task");
     } else if((status == 1 && kobuki_state == Working) || (status == 1 && kobuki_state == Start_task)) {
       kobuki_state = Leave_task;
       leave_task = ros::Time::now();
+      count_stuck = 0;
       //ROS_INFO("Leave_task");
     } else if(status == 1) {
       kobuki_state = Navigating;
@@ -341,8 +359,6 @@ int main(int argc, char **argv)
     if(new_mission_state) // when missions is updated
     {
       
-      //totalNumPorts(missions);
-
       if(first_loop){ 
 
         publishRobParamInfo(rob_param_pub);
@@ -365,15 +381,16 @@ int main(int argc, char **argv)
         printf("Kobuki_%i finish its mission\n", kobuki_id);
         actionlib_msgs::GoalID cancel_msg;
         cancel_navigation_pub.publish(cancel_msg);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         ros::shutdown();
         
       } else {
 
         if(first_loop || calcStim(calc_stim_time, count, calc_stim_way) || recalculate){  // NOW ONLY RECALCULATE A POSSIBLE NEW GOAL WHEN A TASK IS END ¿¿¿¿¿¿ HOW TO DO ??????
 
-          //setProbabilities(threshold, max_dist, utility_max, mission_time, utility_max); // the probabilities for each task are obtained
-          setStimulusDet(current_goal, sdl_method, agregation_type, w1, w2, w3); // the stimulus for each task are obtained
-
+          //setStimulusDet(current_goal, sdl_method, agregation_type, w1, w2, w3); // the stimulus for each task are obtained (current_goal -> means the Ti task is uploaded when the robot decided to go to the task)
+          setStimulusDet(task_Ti, sdl_method, agregation_type, w1, w2, w3); // the stimulus for each task are obtained (task_Ti -> means the Ti task is uploaded when the robot arrive to the task)
+          
           current_goal = setTaskObjectiveDeterministic();
 
   
@@ -398,6 +415,7 @@ int main(int argc, char **argv)
         {
           printf("Kobuki_%i publish port %i of task %i localized on -> x: %5.2f y: %5.2f yaw: %5.2f\n", kobuki_id, current_port.id_port, current_goal.id_task, current_port.x, current_port.y, current_port.yaw);
           publishPortGoal(&goal_pub, current_port); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
+          clearClient.call(srv);
 
           port_assigned = false;
           calculated_task = false;
@@ -462,34 +480,44 @@ int main(int argc, char **argv)
       
     }
 
-    if(loop_counter >= 10*LOOP_RATE || kobuki_state == Stuck){ // if the robot abort the mission or each 10 secs, clear the costmaps and publish again the objective
+    // UNSTUCK BEHAVIOR
+
+    if(loop_counter >= 10*LOOP_RATE || kobuki_state == Stuck || sure_stuck){ // if the robot abort the mission or each 10 secs, clear the costmaps and publish again the objective
       
 
       //if(kobuki_state == Stuck){publishGoal(&goal_pub, current_goal);} // republish the objective
-      if(kobuki_state == Stuck)
+      if(kobuki_state == Stuck || sure_stuck)
       {
         printf("Kobuki_%i executing unstuck behavior.\n", kobuki_id);
         //for(int i = 0 ; i < 50 ; i++){
+          actionlib_msgs::GoalID cancel_msg;
+          cancel_navigation_pub.publish(cancel_msg);
           publishRotation(&rotate_pub);
         //}
         rotate_publications++;
-        if(rotate_publications > (1.5708*10))
+        if(rotate_publications > (1.5708*LOOP_RATE))
         {
           publishPortGoal(&goal_pub, current_port);
           rotate_publications = 0;
+          sure_stuck = false;
+          //may_stuck = false;
+          count_stuck = 0;
           
-          clearClient.call(srv);
+          //clearClient.call(srv);
         }
-        loop_counter = 0;
+        //loop_counter = 0;
         
       } else {
 
         clearClient.call(srv);
-
+        loop_counter = 0;
       }
       
-      loop_counter = 0;
+      
     }
+
+    //may_stuck = false;
+    
 
     f = boost::bind(&callback, _1, _2);
     server.setCallback(f);
@@ -500,6 +528,7 @@ int main(int argc, char **argv)
 
     loop_counter++;
     count++; 
+    
   } 
 
   return 0;
@@ -528,14 +557,24 @@ bool disponiblePorts()
 bool calcStim(float calc_stim_time, int counter, bool calc_stim_way)
 {
   int aux = calc_stim_time * LOOP_RATE;
+  bool end_actual_goal = true;
 
-  //printf("%i == %i\n", aux, counter);
+  // If the actual task is ended have to calculate stimulus again
+  for(int i = 0 ; i < missions.size() ; i++)
+  {
+    if(missions[i].id_task == current_goal.id_task)
+    {
+      end_actual_goal = false;
+    }
+  }
+  if(end_actual_goal){return true;}
 
+  // Have to calculate if the indicated time step (calc_stim_time) is reached
   if(aux <= counter)
   {
     if(!calc_stim_way)
     {
-      if(kobuki_state == Navigating)
+      if(kobuki_state == Navigating || kobuki_state == Computing)
       {
         return false;
       }

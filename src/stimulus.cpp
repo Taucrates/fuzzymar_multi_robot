@@ -432,10 +432,11 @@ bool doubleSimilarTo(double a, double b, double diff)
   return (difference < diff) && (-difference < diff);
 }
 
-double middleValue(double u_stim, double d_stim, double p_stim)
+double middleValue(double u_stim, double d_stim, double p_stim) /// S'HA DE MIRAR BÉ!!!
 {
   double aux_max = std::max({u_stim, d_stim, p_stim});
   double aux_min = std::min({u_stim, d_stim, p_stim});
+  int num_max, num_min = 0;
   
   if(!doubleSimilarTo(u_stim, aux_max, 0.0000000000001) && !doubleSimilarTo(u_stim, aux_min, 0.0000000000001))
   {
@@ -452,6 +453,16 @@ double middleValue(double u_stim, double d_stim, double p_stim)
     return p_stim;
   }
   
+  if(doubleSimilarTo(u_stim, aux_max, 0.0000001)){num_max++;}
+  if(doubleSimilarTo(d_stim, aux_max, 0.0000001)){num_max++;}
+  if(doubleSimilarTo(p_stim, aux_max, 0.0000001)){num_max++;}
+
+  if(num_max == 2)
+  {
+    return aux_max;
+  } else {
+    return aux_min;
+  }
 
 }
 
@@ -459,6 +470,8 @@ double middleValue(double u_stim, double d_stim, double p_stim)
 void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_type, float w1, float w2, float w3)
 {
   probabilities.clear();
+
+  //printf("************************************ Ti: %i ********************************\n", current_task.id_task);
 
   uint8_t id;
   double stim, prob, norm_prob, accumul;
@@ -488,7 +501,8 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
         break;
     }
     
-    distance_stim = sds(i, current_goal);
+    //distance_stim = sds(i, current_goal);   
+    distance_stim = sds(i, current_task);   // OJO així fa que Ti ho sigui quan ja s'hi ha estat (no canvi continu de Ti)
     ports_stim = iL(i);
 
     u_stim_norm = utility_stim;
@@ -520,8 +534,8 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
             stim = 0.0;
 
           } else {
-            //printf("%f · %20.18f   +   %f · %f   +   %f · %f\n", w1, std::min({u_stim_norm, d_stim_norm, p_stim_norm}), w2, std::max({u_stim_norm, d_stim_norm, p_stim_norm}), w3, middleValue(u_stim_norm, d_stim_norm, p_stim_norm));
-            stim = w1 * (std::min({u_stim_norm, d_stim_norm, p_stim_norm}))   +   w2 * std::max({u_stim_norm, d_stim_norm, p_stim_norm})   +   w3 * middleValue(u_stim_norm, d_stim_norm, p_stim_norm);
+            printf("%f · %20.18f   +   %f · %f   +   %f · %f\n", w1, std::min({u_stim_norm, d_stim_norm, p_stim_norm}), w2, std::max({u_stim_norm, d_stim_norm, p_stim_norm}), w3, middleValue(u_stim_norm, d_stim_norm, p_stim_norm));
+            stim = w1 * (std::max({u_stim_norm, d_stim_norm, p_stim_norm}))   +   w2 * std::min({u_stim_norm, d_stim_norm, p_stim_norm})   +   w3 * middleValue(u_stim_norm, d_stim_norm, p_stim_norm);
             //printf("MiddleValue: %20.16f\n", middleValue(u_stim_norm, d_stim_norm, p_stim_norm));
           }
           break;
