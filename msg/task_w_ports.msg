@@ -5,5 +5,5 @@ float32 weight_task
 float32 x
 float32 y
 uint8 doing_task
-float32 utility
+float64 utility
 port[] ports

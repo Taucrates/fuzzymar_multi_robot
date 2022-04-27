@@ -26,6 +26,7 @@
 
 float distance(float x1, float y1, float x2, float y2); // calculate the distance between 2 points in 2D
 int totalNumPorts(); // counts the total num of ports assigned, by task_ports node, in the mission
+int robotsAssigned(int task);
 bool doubleSimilarTo(double a, double b, double diff);
 
 float getMaxDist(); // Get the max distance between tasks and between robot and tasks
@@ -44,7 +45,7 @@ float getPortsStimulus(int task);
 float sdl_V1(int task);   // utility stimulus version 1 (sdl1(t))
 float sdl_V2(int task);   // utility stimulus version 2 (sdl2(t))
 
-float sds(int task);      // distance stimulus (sds(t))
+float sds(int task, Current_goal current_task);      // distance stimulus (sds(t))
 
 float iL(int task);       // ports stimulus (iL(occupied(t)))
 

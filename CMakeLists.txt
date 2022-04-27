@@ -67,8 +67,7 @@ include_directories(
 
 ## libraries
 add_library(libraries 
-            src/stimulus.cpp
-            )
+            src/stimulus.cpp)
 target_link_libraries(libraries ${catkin_LIBRARIES})
 
 ## nodes

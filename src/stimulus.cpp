@@ -265,12 +265,10 @@ void setProbabilities(float thres, float d_max, float u_max, ros::Time mission_t
 
   uint8_t id;
   float stim, prob, norm_prob, accumul;
-  float distance_stim, d_stim_norm = 0.0;
-  float utility_stim, u_stim_norm = 0.0;
-  float ports_stim, p_stim_norm = 0.0;
-  float sum_prob, sum_norm;
-  sum_prob = 0.0;
-  sum_norm = 0.0;
+  float distance_stim = 0.0, d_stim_norm = 0.0;
+  float utility_stim = 0.0, u_stim_norm = 0.0;
+  float ports_stim = 0.0, p_stim_norm = 0.0;
+  float sum_prob = 0.0, sum_norm = 0.0;
 
   printf("\n\n");
 
@@ -327,13 +325,13 @@ void setProbabilities(float thres, float d_max, float u_max, ros::Time mission_t
     probabilities[j].accumulative = sum_norm;
   }
 
-  printf("KOBUKI_%i:\n", kobuki_id);
+  /*printf("KOBUKI_%i:\n", kobuki_id);
   for(int i = 0 ; i < probabilities.size() ; i++)
   {
     printf("ID: %i , D_STIM: %f, U_STIM: %f, P_STIM: %f, STIMULUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f\n", probabilities[i].id_task, probabilities[i].d_stimulus, probabilities[i].u_stimulus, probabilities[i].p_stimulus, probabilities[i].stimulus,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
-  }
+  }*/
 
-}
+} 
 
 
 /*********************************************************************************************************************************************************
@@ -436,7 +434,7 @@ double middleValue(double u_stim, double d_stim, double p_stim) /// S'HA DE MIRA
 {
   double aux_max = std::max({u_stim, d_stim, p_stim});
   double aux_min = std::min({u_stim, d_stim, p_stim});
-  int num_max, num_min = 0;
+  int num_max = 0;
   
   if(!doubleSimilarTo(u_stim, aux_max, 0.0000000000001) && !doubleSimilarTo(u_stim, aux_min, 0.0000000000001))
   {
@@ -465,7 +463,6 @@ double middleValue(double u_stim, double d_stim, double p_stim) /// S'HA DE MIRA
   }
 
 }
-
 
 void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_type, float w1, float w2, float w3)
 {
@@ -534,7 +531,7 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
             stim = 0.0;
 
           } else {
-            printf("%f · %20.18f   +   %f · %f   +   %f · %f\n", w1, std::min({u_stim_norm, d_stim_norm, p_stim_norm}), w2, std::max({u_stim_norm, d_stim_norm, p_stim_norm}), w3, middleValue(u_stim_norm, d_stim_norm, p_stim_norm));
+            //printf("%f · %f   +   %f · %f   +   %f · %f\n", w1, std::min({u_stim_norm, d_stim_norm, p_stim_norm}), w2, std::max({u_stim_norm, d_stim_norm, p_stim_norm}), w3, middleValue(u_stim_norm, d_stim_norm, p_stim_norm));
             stim = w1 * (std::max({u_stim_norm, d_stim_norm, p_stim_norm}))   +   w2 * std::min({u_stim_norm, d_stim_norm, p_stim_norm})   +   w3 * middleValue(u_stim_norm, d_stim_norm, p_stim_norm);
             //printf("MiddleValue: %20.16f\n", middleValue(u_stim_norm, d_stim_norm, p_stim_norm));
           }
@@ -566,10 +563,10 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
     probabilities[j].accumulative = sum_norm;
   }
 
-  printf("KOBUKI_%i:\n", kobuki_id);
+  /*printf("KOBUKI_%i:\n", kobuki_id);
   for(int i = 0 ; i < probabilities.size() ; i++)
   {
     printf("ID: %i , D_STIM: %f, U_STIM: %f, P_STIM: %f, STIMULUS: %25.24f\n", probabilities[i].id_task, probabilities[i].d_stimulus, probabilities[i].u_stimulus, probabilities[i].p_stimulus, probabilities[i].probability);
-  }
+  }*/
 
-}
+} 

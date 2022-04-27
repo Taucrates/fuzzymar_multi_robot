@@ -44,7 +44,7 @@ struct Task {
 		float x;
 		float y;
 		uint8_t doing_task;
-    float utility;
+    double utility;
     std::vector<fuzzymar_multi_robot::port> ports;
 };
 

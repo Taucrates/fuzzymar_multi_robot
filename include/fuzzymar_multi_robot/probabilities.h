@@ -27,18 +27,22 @@
 // STRUCTS
 struct Probability {
   uint8_t id_task;
-  float d_stimulus;
-  float u_stimulus;
-  float p_stimulus;
-  float stimulus;
-  float probability;
-  float norm_probability;
-  float accumulative;
+  double d_stimulus;
+  double u_stimulus;
+  double p_stimulus;
+  double stimulus;
+  double probability;
+  double norm_probability;
+  double accumulative;
 };
 
 std::vector<Probability> probabilities; // vector where probabilities are saved
 
-// PROBABILITIES
+bool doubleSimilarTo(double a, double b, double diff);
+
+// PROBABILITIES TABLE
 void setProbabilities(float thres, float d_max, float u_max, ros::Time mission_time, float utility_max); // build the probabilities vector {id_task, stimulus, probability}
 
+// STIMULUS TABLE
+void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_type, float w1, float w2, float w3);   // build the vector probabilities
 #endif // PROBABILITIES_H 

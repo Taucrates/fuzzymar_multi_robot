@@ -15,7 +15,7 @@
     <arg name="mission_name" value="$(arg mission_name)"/>
   </include> 
 
-  <!--<include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="mission_name" value="$(arg mission_name)"/>
   </include>
@@ -33,7 +33,7 @@
   <include file="$(find fuzzymar_multi_robot)/launch/simulation/model_state_setter.launch">
     <arg name="robot_name" value="kobuki_e"/>
     <arg name="mission_name" value="$(arg mission_name)"/>
-  </include>-->
+  </include>
 
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - -->
   <!-- Navigation nodes                                    -->
@@ -46,7 +46,7 @@
     <arg name="deterministic" value="$(arg deterministic)"/>
   </include>
 
-  <!--<include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/navigation/kobuki_navigation.launch">
     <arg name="robot_name" value="kobuki_b"/>
     <arg name="kobuki_id"  value="2"/>
     <arg name="mission_name" value="$(arg mission_name)"/>  
@@ -76,5 +76,5 @@
     <arg name="mission_name" value="$(arg mission_name)"/>  
     <arg name="common_params" value="$(arg common_params)"/>
     <arg name="deterministic" value="$(arg deterministic)"/>
-  </include>-->
+  </include>
 </launch>

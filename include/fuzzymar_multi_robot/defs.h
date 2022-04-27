@@ -5,7 +5,8 @@
  * @Date: April 2022
  */
 
-
+#ifndef DEFS_H
+#define DEFS_H
 
 #include <stdio.h>
 #include <fstream>
@@ -25,7 +26,7 @@
 #include <fuzzymar_multi_robot/robotParameters.h>
 
 
-#pragma once
+//#pragma once
 
 #define EPSILON 2.22044604925031 / 10000000000000000
 
@@ -47,7 +48,7 @@ struct Task {
   float y;
   uint8_t doing_task;
   bool enable;
-  float utility;
+  double utility;
   std::vector<fuzzymar_multi_robot::port> ports;
 };
 
@@ -61,7 +62,6 @@ struct Probability {
   double norm_probability;
   double accumulative;
 };
-
 
 // GLOBAL VARIABLES
 int kobuki_id;
@@ -107,3 +107,5 @@ std::vector<Probability> probabilities; // vector where probabilities are saved
 //bool may_stuck = false;   // indicates if the robot is stopped (maybe stucked)
 bool sure_stuck = false;  // indicates if the robot is stucked (may_stuck && !Working)
 int count_stuck = 0;
+
+#endif // DEFS_H 
