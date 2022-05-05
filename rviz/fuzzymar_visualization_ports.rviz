@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Kobuki E1
       Splitter Ratio: 0.5941176414489746
-    Tree Height: 733
+    Tree Height: 363
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -1079,16 +1079,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 9.702509880065918
+      Distance: 15.552095413208008
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.699408531188965
-        Y: -1.1909836530685425
-        Z: 1.9548346996307373
+        X: 3.7480928897857666
+        Y: -1.1661096811294556
+        Z: -2.138929843902588
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -1097,7 +1097,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.1404268741607666
+      Yaw: 3.1430578231811523
     Saved: ~
 Window Geometry:
   Displays:

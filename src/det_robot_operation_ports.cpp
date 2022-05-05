@@ -27,6 +27,11 @@
 #include "fuzzymar_multi_robot/stimulus.h"
 //#include "fuzzymar_multi_robot/probabilities.h"
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 #define DEBUGGING 0
 #define CLEAR_COSTMAP 0
 #define TOTAL_ROBOTS 5
@@ -148,7 +153,7 @@ void missionStateCallback(const fuzzymar_multi_robot::task_w_portsArray::ConstPt
           current_port.yaw = aux_port.yaw;
 
           port_assigned = true;
-          printf("Kobuki_%i setted port %i of task %i\n", kobuki_id, aux_port.id_port, current_goal.id_task);
+          printf("Kobuki_%i HAS SETTED the port %i of task %i\n", kobuki_id, aux_port.id_port, current_goal.id_task);
         }
         
       }
@@ -197,14 +202,28 @@ void endMissionCallback(const std_msgs::Empty::ConstPtr& end_msg)
 void odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
 {
   //ROS_INFO("odomMSG");
-  if(doubleSimilarTo((double)odom_msg->twist.twist.linear.x, (double)0.0, 0.001) && odom_msg->twist.twist.angular.z < 0.001 && kobuki_state == Navigating)
+  if(doubleSimilarTo((double)odom_msg->twist.twist.linear.x, (double)0.0, 0.0001) && doubleSimilarTo((double)odom_msg->twist.twist.angular.z, (double)0.0, 0.0001) && kobuki_state == Navigating)
   {
     
     count_stuck++;
     //ROS_INFO("*************************** MAY STUCK ****************************************");
-    if(count_stuck > 5*LOOP_RATE){sure_stuck = true; printf("***************************** ROBOT STUCKED *******************************\n");}
+    if(count_stuck > 2*LOOP_RATE){sure_stuck = true; /*printf("***************************** ROBOT STUCKED *******************************\n");*/}
   }
 
+}
+
+void pathCallback(const nav_msgs::Path::ConstPtr& path_msg)
+{
+  length_path = 0.0;
+  for(int i = 1 ; i < path_msg -> poses.size() ; i++)
+  {
+    float ant_x = path_msg -> poses[i-1].pose.position.x;
+    float ant_y = path_msg -> poses[i-1].pose.position.y;
+    float x = path_msg -> poses[i].pose.position.x;
+    float y = path_msg -> poses[i].pose.position.y;
+    length_path += distance(x, y, ant_x, ant_y);
+  }
+  
 }
 
 /********************************************************************************************
@@ -232,6 +251,7 @@ int main(int argc, char **argv)
   ros::Subscriber goal_status_sub = n.subscribe(goal_status_sub_topic, 1000, statusGoalCallback);
   ros::Subscriber end_mission_sub = n.subscribe("/mission_accomplished", 1000, endMissionCallback);
   ros::Subscriber odom_sub = n.subscribe("odom", 1, odomCallback);
+  ros::Subscriber path_sub = n.subscribe("move_base/DWAPlannerROS/global_plan", 10, pathCallback);
 
   // Publishers
   ros::Publisher goal_pub = n.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 10);
@@ -281,13 +301,14 @@ int main(int argc, char **argv)
   float random;
   bool has_to_rotate = false;
   int rotate_publications = 0;
+  int rotated_360 = 0;
 
   // DETERMINISTIC
   int count = 0;
 
   printf("\nKobuki_%i has a max_vel: %5.2f, ", kobuki_id, max_vel);
   
-  printf(" DETERMINISTIC, Calculate stimulus each %fs, ", calc_stim_time);
+  printf(" DETERMINISTIC, Calculate stimulus each %3.1fs, ", calc_stim_time);
 
   if(calc_stim_way)
   {
@@ -334,12 +355,14 @@ int main(int argc, char **argv)
     if(status == 3 && kobuki_state == Navigating) { // TODO es possible que haguem d'afegir status == 3 && kobuki_state == Computing per si sa tasca està a la posició actual del robot (no s'ha de moure per anar a la tasca)
       kobuki_state = Start_task;
       has_worked = true;
+      working = true;
       task_Ti = current_goal;
       init_task = ros::Time::now();
       //ROS_INFO("Start_task");
     } else if((status == 1 && kobuki_state == Working) || (status == 1 && kobuki_state == Start_task)) {
       kobuki_state = Leave_task;
       leave_task = ros::Time::now();
+      working = false;
       count_stuck = 0;
       //ROS_INFO("Leave_task");
     } else if(status == 1) {
@@ -354,6 +377,13 @@ int main(int argc, char **argv)
     } else {
       kobuki_state = Computing;
       //ROS_INFO("Computing");
+    }
+
+    if((kobuki_state == Start_task || kobuki_state == Leave_task)) // send when robot arrives to the current task (goal reached) or leave a task
+    {
+      // publish
+      publishTask(&task_pub); // publish {id_kobuki, id_task, sec, nsec, active} --> active indicates if is starting (true) or leaving (false) the task
+      
     }
 
     if(new_mission_state) // when missions is updated
@@ -397,7 +427,7 @@ int main(int argc, char **argv)
           setPortPriority(); // the port priority for the current task (using distance) is setted 
 
           publishTaskObjective(&task_ports_pub); // the task objective and its own port priority is published
-          if(recalculate){printf("Kobuki_%i ***recalculate*** the task and port.\n", kobuki_id);}
+          if(recalculate){printf(ANSI_COLOR_YELLOW "Kobuki_%i ***RECALCULATE*** the task and port.\n" ANSI_COLOR_RESET , kobuki_id);}
 
           disponible_ports = disponiblePorts(); // set to true if there are free_ports in the current task
           recalculate = false;
@@ -409,25 +439,33 @@ int main(int argc, char **argv)
         if((first_loop || current_goal.id_task != aux_current_goal))  // only publish new goal if is the first task or a new task assignment (avoiding republish the same goal/task)
         {
           //publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
-          calculated_task = true;  
+          calculated_task = true; 
+          printf("Kobuki_%i CALCULATE task %i and still has to assign port\n", kobuki_id, current_goal.id_task); 
+
+          // IF NEW TASK OBJECTIVE IS CALCULATED HAS TO CANCEL THE LAST OBJECTIVE
+          actionlib_msgs::GoalID cancel_msg;
+          cancel_navigation_pub.publish(cancel_msg);
+
           //port_assigned = false;  
         } else if(port_assigned)  // only publish new goal if is the first task or a new task assignment
         {
-          printf("Kobuki_%i publish port %i of task %i localized on -> x: %5.2f y: %5.2f yaw: %5.2f\n", kobuki_id, current_port.id_port, current_goal.id_task, current_port.x, current_port.y, current_port.yaw);
+          printf("Kobuki_%i PUBLISH port %i of task %i\n", kobuki_id, current_port.id_port, current_goal.id_task);
           publishPortGoal(&goal_pub, current_port); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
           clearClient.call(srv);
 
           port_assigned = false;
           calculated_task = false;
+          count_no_port_assigned_msg = 0;
           //count_recalculate = 0;
 
         } else if (calculated_task && !port_assigned) // to avoid the robot try to go to a task without available ports (robot hasn't got a port assigned)
         {
           count_no_port_assigned_msg++;
-
+          
           if(count_no_port_assigned_msg > LOOP_RATE/2) // in that point we should have been received a port assignation, if not robot has to recalculate
           {
-            printf("Kobuki_%i has to recalculate the task and port.\n", kobuki_id);
+            
+            printf(ANSI_COLOR_YELLOW "Kobuki_%i has to recalculate the task and port.\n" ANSI_COLOR_RESET, kobuki_id);
             recalculate = true;
             count_no_port_assigned_msg = 0;
             //count_recalculate++;
@@ -473,13 +511,6 @@ int main(int argc, char **argv)
 
     }
 
-    if(kobuki_state == Start_task || kobuki_state == Leave_task) // send when robot arrives to the current task (goal reached) or leave a task
-    {
-      // publish
-      publishTask(&task_pub); // publish {id_kobuki, id_task, sec, nsec, active} --> active indicates if is starting (true) or leaving (false) the task
-      
-    }
-
     // UNSTUCK BEHAVIOR
 
     if(loop_counter >= 10*LOOP_RATE || kobuki_state == Stuck || sure_stuck){ // if the robot abort the mission or each 10 secs, clear the costmaps and publish again the objective
@@ -488,7 +519,7 @@ int main(int argc, char **argv)
       //if(kobuki_state == Stuck){publishGoal(&goal_pub, current_goal);} // republish the objective
       if(kobuki_state == Stuck || sure_stuck)
       {
-        printf("Kobuki_%i executing unstuck behavior.\n", kobuki_id);
+        
         //for(int i = 0 ; i < 50 ; i++){
           actionlib_msgs::GoalID cancel_msg;
           cancel_navigation_pub.publish(cancel_msg);
@@ -497,23 +528,39 @@ int main(int argc, char **argv)
         rotate_publications++;
         if(rotate_publications > (1.5708*LOOP_RATE))
         {
-          publishPortGoal(&goal_pub, current_port);
+          
           rotate_publications = 0;
           sure_stuck = false;
           //may_stuck = false;
-          count_stuck = 0;
-          
-          //clearClient.call(srv);
+          count_stuck = 0; 
+          publishPortGoal(&goal_pub, current_port);
+          printf("Kobuki_%i has executed unstuck behavior.\n", kobuki_id);
+          // when robot rotates 360º clear costmaps
+          if(rotated_360 > 4) 
+          {
+            clearClient.call(srv);
+            printf("Kobuki_%i clears costmaps due to unstuck behavior.\n", kobuki_id);
+            rotated_360 = 0;
+          }
+          rotated_360++;
+          //
         }
-        //loop_counter = 0;
+        loop_counter = 0;
         
       } else {
-
+        
+        //printf("Kobuki_%i clear costmap.\n", kobuki_id);
         clearClient.call(srv);
         loop_counter = 0;
+        rotated_360 = 0;
       }
       
       
+    }
+    // this if structure to be sure the goal is republished after UNSTUCK BEHAVIOR
+    if(rotate_publications == 0 && status == 2)
+    {
+      publishPortGoal(&goal_pub, current_port);
     }
 
     //may_stuck = false;

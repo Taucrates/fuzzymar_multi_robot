@@ -214,12 +214,12 @@ void endMissionCallback(const std_msgs::Empty::ConstPtr& end_msg)
 void odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
 {
   //ROS_INFO("odomMSG");
-  if(doubleSimilarTo((double)odom_msg->twist.twist.linear.x, (double)0.0, 0.001) && odom_msg->twist.twist.angular.z < 0.001 && kobuki_state == Navigating)
+  if(doubleSimilarTo((double)odom_msg->twist.twist.linear.x, (double)0.0, 0.0001) && doubleSimilarTo((double)odom_msg->twist.twist.angular.z, (double)0.0, 0.0001) && kobuki_state == Navigating)
   {
     
     count_stuck++;
     //ROS_INFO("*************************** MAY STUCK ****************************************");
-    if(count_stuck > 5*LOOP_RATE){sure_stuck = true; printf("***************************** ROBOT STUCKED *******************************\n");}
+    if(count_stuck > 2*LOOP_RATE){sure_stuck = true; /*printf("***************************** ROBOT STUCKED *******************************\n");*/}
   }
 
 }
@@ -296,6 +296,7 @@ int main(int argc, char **argv)
   float random;
   bool has_to_rotate = false;
   int rotate_publications = 0;
+  int rotated_360 = 0;
 
   printf("\nKobuki_%i has an alpha_utility: %5.2f , beta_distance: %5.2f, gamma_ports: %5.2f , UDD_factor: %6.4f, max_vel: %5.2f, ", kobuki_id, alpha_utility, beta_distance, gamma_ports, UDD_factor, max_vel);
   
@@ -326,6 +327,13 @@ int main(int argc, char **argv)
     } else {
       kobuki_state = Computing;
       //ROS_INFO("Computing");
+    }
+
+    if(kobuki_state == Start_task || kobuki_state == Leave_task) // send when robot arrives to the current task (goal reached) or leave a task
+    {
+      // publish
+      publishTask(&task_pub); // publish {id_kobuki, id_task, sec, nsec, active} --> active indicates if is starting (true) or leaving (false) the task
+      
     }
 
     if(new_mission_state) // when missions is updated
@@ -387,6 +395,11 @@ int main(int argc, char **argv)
         {
           //publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
           calculated_task = true;  
+
+          // IF NEW TASK OBJECTIVE IS CALCULATED HAS TO CANCEL THE LAST OBJECTIVE
+          actionlib_msgs::GoalID cancel_msg;
+          cancel_navigation_pub.publish(cancel_msg);
+          
           //port_assigned = false;  
         } else if(port_assigned)  // only publish new goal if is the first task or a new task assignment
         {
@@ -453,12 +466,6 @@ int main(int argc, char **argv)
 
     }
 
-    if(kobuki_state == Start_task || kobuki_state == Leave_task) // send when robot arrives to the current task (goal reached) or leave a task
-    {
-      // publish
-      publishTask(&task_pub); // publish {id_kobuki, id_task, sec, nsec, active} --> active indicates if is starting (true) or leaving (false) the task
-      
-    }
 
     // UNSTUCK BEHAVIOR
 
@@ -468,7 +475,7 @@ int main(int argc, char **argv)
       //if(kobuki_state == Stuck){publishGoal(&goal_pub, current_goal);} // republish the objective
       if(kobuki_state == Stuck || sure_stuck)
       {
-        printf("Kobuki_%i executing unstuck behavior.\n", kobuki_id);
+        
         //for(int i = 0 ; i < 50 ; i++){
           actionlib_msgs::GoalID cancel_msg;
           cancel_navigation_pub.publish(cancel_msg);
@@ -477,23 +484,39 @@ int main(int argc, char **argv)
         rotate_publications++;
         if(rotate_publications > (1.5708*LOOP_RATE))
         {
-          publishPortGoal(&goal_pub, current_port);
+          
           rotate_publications = 0;
           sure_stuck = false;
           //may_stuck = false;
-          count_stuck = 0;
-          
-          //clearClient.call(srv);
+          count_stuck = 0; 
+          publishPortGoal(&goal_pub, current_port);
+          printf("Kobuki_%i has executed unstuck behavior.\n", kobuki_id);
+          // when robot rotates 360º clear costmaps
+          if(rotated_360 > 4) 
+          {
+            clearClient.call(srv);
+            printf("Kobuki_%i clears costmaps due to unstuck behavior.\n", kobuki_id);
+            rotated_360 = 0;
+          } 
+          rotated_360++;
+          //
         }
-        //loop_counter = 0;
+        loop_counter = 0;
         
       } else {
-
+        
+        //printf("Kobuki_%i clear costmap.\n", kobuki_id);
         clearClient.call(srv);
         loop_counter = 0;
+        rotated_360 = 0;
       }
       
       
+    }
+    // this if structure to be sure the goal is republished after UNSTUCK BEHAVIOR
+    if(rotate_publications == 0 && status == 2)
+    {
+      publishPortGoal(&goal_pub, current_port);
     }
 
     f = boost::bind(&callback, _1, _2);

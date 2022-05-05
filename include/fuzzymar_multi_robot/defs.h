@@ -93,6 +93,8 @@ float workload = 1.0;      // weight reduced per second
 float calc_stim_time = 1.0;     // how often the robot calculate the stimulus
 bool calc_stim_way = true;      // true if the robot have to calculate running through tasks, false otherwise
 
+double length_path = 0.0;
+
 // GENERAL
 
 ros::Time mission_time; // the time at wich the mission starts
@@ -104,7 +106,7 @@ Current_goal task_Ti;      // current task where robot has already arrived
 std::vector<Probability> probabilities; // vector where probabilities are saved
 
 // FLAG
-//bool may_stuck = false;   // indicates if the robot is stopped (maybe stucked)
+bool working = false;     // indicates if the robot is working in a task
 bool sure_stuck = false;  // indicates if the robot is stucked (may_stuck && !Working)
 int count_stuck = 0;
 

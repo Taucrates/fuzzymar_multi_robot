@@ -270,8 +270,6 @@ void setProbabilities(float thres, float d_max, float u_max, ros::Time mission_t
   float ports_stim = 0.0, p_stim_norm = 0.0;
   float sum_prob = 0.0, sum_norm = 0.0;
 
-  printf("\n\n");
-
   for(int i = 1 ; i <= missions.size() ; i++)
   {
     id = missions[i-1].id_task;
@@ -325,7 +323,8 @@ void setProbabilities(float thres, float d_max, float u_max, ros::Time mission_t
     probabilities[j].accumulative = sum_norm;
   }
 
-  /*printf("KOBUKI_%i:\n", kobuki_id);
+  /*printf("\n\n");
+  printf("KOBUKI_%i:\n", kobuki_id);
   for(int i = 0 ; i < probabilities.size() ; i++)
   {
     printf("ID: %i , D_STIM: %f, U_STIM: %f, P_STIM: %f, STIMULUS: %f , PROBABILITY: %f NORMALIZED: %f ACCUMULATIVE: %f\n", probabilities[i].id_task, probabilities[i].d_stimulus, probabilities[i].u_stimulus, probabilities[i].p_stimulus, probabilities[i].stimulus,  probabilities[i].probability,  probabilities[i].norm_probability, probabilities[i].accumulative);
@@ -382,7 +381,8 @@ float sds(int task, Current_goal current_task)
   float stim = 0.0;
   float aux = 0.0;
 
-  if(current_task.id_task != 0)   // IN THE START THE ROBOT USE THE START POSITION AS Ti (to calculat the distance)
+  // IN THE START THE ROBOT USE THE START POSITION AS Ti (to calculat the distance)
+  /*if(current_task.id_task != 0)   
   {
 
     aux = (distance(current_task.x, current_task.y, missions[task].x, missions[task].y)) / (max_vel * missions[task].weight);
@@ -391,8 +391,19 @@ float sds(int task, Current_goal current_task)
 
     aux = (distance(current_position.first, current_position.second, missions[task].x, missions[task].y)) / (max_vel * missions[task].weight);
 
+  }*/
+
+  // WHEN ROBOT IS WORKING IS SUPOSED THE DISTANCE TO THIS TASK IS 0
+  if(current_task.id_task == missions[task].id_task && working)
+  {
+
+    aux = 0.0;
+
+  } else {
+
+    aux = (distance(current_position.first, current_position.second, missions[task].x, missions[task].y)) / (max_vel * missions[task].weight);
+
   }
-  
   
   if(aux < 1)
   {
@@ -412,8 +423,18 @@ float iL(int task)
 {
   float stim = 0.0;
 
-  //stim = (1.0 - ((double)robotsAssigned(task) / (double)missions[task].ports.size()));
-  stim = (1.0 - ((double)missions[task].doing_task / (double)missions[task].ports.size()));
+  // TAKING ACCOUNT THE ROBOTS ASSIGNED TO THE TASK (no itself)
+  stim = (1.0 - ((double)robotsAssigned(task) / (double)missions[task].ports.size()));
+
+  // TAKING ACCOUNT THE ROBOTS WORKING IN THE TASK
+  // This 'if' structure to avoid the robot take account of itself when is working in a task
+  /*if(working && missions[task].id_task == task_Ti.id_task)
+  {
+    stim = (1.0 - (((double)missions[task].doing_task - 1) / (double)missions[task].ports.size()));
+  } else {
+    stim = (1.0 - ((double)missions[task].doing_task / (double)missions[task].ports.size()));
+  }*/
+  
   
   return stim;
 }
@@ -475,11 +496,7 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
   double distance_stim, d_stim_norm = 0.0;
   double utility_stim, u_stim_norm = 0.0;
   double ports_stim, p_stim_norm = 0.0;
-  double sum_prob, sum_norm;
-  sum_prob = 0.0;
-  sum_norm = 0.0;
-
-  printf("\n\n");
+  double sum_prob = 0.0, sum_norm = 0.0;
 
   for(int i = 0; i < missions.size() ; i++)
   {
@@ -497,9 +514,8 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
         utility_stim = 0.0;
         break;
     }
-    
-    //distance_stim = sds(i, current_goal);   
-    distance_stim = sds(i, current_task);   // OJO així fa que Ti ho sigui quan ja s'hi ha estat (no canvi continu de Ti)
+       
+    distance_stim = sds(i, current_task);   
     ports_stim = iL(i);
 
     u_stim_norm = utility_stim;
@@ -563,7 +579,8 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
     probabilities[j].accumulative = sum_norm;
   }
 
-  /*printf("KOBUKI_%i:\n", kobuki_id);
+  /*printf("\n\n");
+  printf("KOBUKI_%i:\n", kobuki_id);
   for(int i = 0 ; i < probabilities.size() ; i++)
   {
     printf("ID: %i , D_STIM: %f, U_STIM: %f, P_STIM: %f, STIMULUS: %25.24f\n", probabilities[i].id_task, probabilities[i].d_stimulus, probabilities[i].u_stimulus, probabilities[i].p_stimulus, probabilities[i].probability);

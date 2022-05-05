@@ -31,6 +31,7 @@
 #define LOOP_RATE 10
 
 #define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
@@ -53,6 +54,7 @@ bool first_loop = true;
 bool missions_update = false;
 bool mission_finalized = false;
 bool got_ports = false;
+bool paintGreen[5] = {false, false, false, false, false};
 
 // TOPICS
 std::string state_pub_topic = "/mission_state";
@@ -72,6 +74,7 @@ void publishMission(ros::Publisher* mission_pub);
 void publishMarkers(ros::Publisher* vis_pub);
 void publishTimeTask(ros::Publisher& time_pub, int id_task, int sec, int nsec, float deadline, float u_max, int total_ports);
 void missionsUpdate(ros::Publisher& time_pub);
+void cleanprintGreen();
 void printInterface();
 std::string current_date();
 
@@ -87,12 +90,18 @@ void taskUpdateCallback(const fuzzymar_multi_robot::action_task_w_ports::ConstPt
 		{
       if(task->active){
 			  missions[i].doing_task += 1; // A robot reach and begin to work in this task
+        paintGreen[(task->id_kobuki)-1] = true;
+        missions_update = true;
+        return;
       } else {
-        missions[i].doing_task -= 1; // A robot leave the task
+        missions[i].doing_task -= 1; // A robot leave the task (task no finished)
+        paintGreen[(task->id_kobuki)-1] = false;
+        missions_update = true;
+        return;
       }
-		}
+		} 
 	}
-
+  paintGreen[(task->id_kobuki)-1] = false; // A robot leave the task (task finished)
 	missions_update = true;
 }
 
@@ -252,6 +261,8 @@ int main(int argc, char **argv)
       {
 
         publishMission(&mission_pub); // publish the vector missions when is updated
+
+        cleanprintGreen();
 
         printInterface();
 
@@ -533,6 +544,31 @@ void missionsUpdate(ros::Publisher& time_pub)
 
 }
 
+void cleanprintGreen()
+{
+  bool found[5] = {false, false, false, false, false};
+
+  for(int i = 0 ; i < missions.size() ; i++) //clean previous ports
+  {
+    for(int j = 0 ; j < missions[i].ports.size() ; j++)
+    {
+      if(missions[i].ports[j].id_kobuki != 0)
+      {
+        found[(missions[i].ports[j].id_kobuki) - 1] = true;
+      }
+    }
+  }
+
+  for(int i = 0 ; i < 5 ; i++)
+  {
+    if(!found[i])
+    {
+      paintGreen[i] = false;
+    }
+  }
+
+}
+
 void printInterface()
 {
 
@@ -562,7 +598,13 @@ void printInterface()
     {
       if(j < missions[i].ports.size())
       {
-        printf(" %i ", missions[i].ports[j].id_kobuki);
+        if(paintGreen[(missions[i].ports[j].id_kobuki) - 1] && missions[i].ports[j].id_kobuki != 0)
+        {
+          printf(ANSI_COLOR_GREEN " %i " ANSI_COLOR_RESET, missions[i].ports[j].id_kobuki);
+        } else {
+          printf(" %i ", missions[i].ports[j].id_kobuki);
+        }
+        
       } else {
         printf("   ");
       }
