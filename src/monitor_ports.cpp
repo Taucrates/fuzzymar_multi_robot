@@ -64,6 +64,7 @@ std::vector<Task> missions;
 ros::Time aux_time;
 bool aux_time_initialized = false;
 ros::Time mission_time;
+int task_working[5] = {0, 0, 0, 0, 0};
 
 int num_tasks = 0;
 
@@ -74,7 +75,7 @@ void publishMission(ros::Publisher* mission_pub);
 void publishMarkers(ros::Publisher* vis_pub);
 void publishTimeTask(ros::Publisher& time_pub, int id_task, int sec, int nsec, float deadline, float u_max, int total_ports);
 void missionsUpdate(ros::Publisher& time_pub);
-void cleanprintGreen();
+void cleanprintGreen();   // avoid paint green one cycle, when robot change task the interface
 void printInterface();
 std::string current_date();
 
@@ -91,11 +92,13 @@ void taskUpdateCallback(const fuzzymar_multi_robot::action_task_w_ports::ConstPt
       if(task->active){
 			  missions[i].doing_task += 1; // A robot reach and begin to work in this task
         paintGreen[(task->id_kobuki)-1] = true;
+        task_working[(task->id_kobuki)-1] = (int)task->id_task;
         missions_update = true;
         return;
       } else {
         missions[i].doing_task -= 1; // A robot leave the task (task no finished)
         paintGreen[(task->id_kobuki)-1] = false;
+        task_working[(task->id_kobuki)-1] = 0;
         missions_update = true;
         return;
       }
@@ -546,22 +549,25 @@ void missionsUpdate(ros::Publisher& time_pub)
 
 void cleanprintGreen()
 {
-  bool found[5] = {false, false, false, false, false};
+  bool changed[5] = {false, false, false, false, false};
 
-  for(int i = 0 ; i < missions.size() ; i++) //clean previous ports
+  for(int i = 0 ; i < missions.size() ; i++) 
   {
     for(int j = 0 ; j < missions[i].ports.size() ; j++)
     {
       if(missions[i].ports[j].id_kobuki != 0)
       {
-        found[(missions[i].ports[j].id_kobuki) - 1] = true;
+        if(missions[i].id_task != task_working[missions[i].ports[j].id_kobuki - 1])
+        {
+          changed[(missions[i].ports[j].id_kobuki) - 1] = true;
+        }
       }
     }
   }
 
   for(int i = 0 ; i < 5 ; i++)
   {
-    if(!found[i])
+    if(changed[i])
     {
       paintGreen[i] = false;
     }
