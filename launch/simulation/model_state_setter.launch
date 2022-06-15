@@ -4,7 +4,7 @@
   <arg name="robot_name" default="kobuki"/>
 
     <group ns="$(arg robot_name)">
-        <node name="model_state_setter" pkg="kobuki_multi_robot" type="model_state_setter" output="screen">
+        <node name="model_state_setter" pkg="fuzzymar_multi_robot" type="model_state_setter" output="screen">
             <param name="robot_name" value="$(arg robot_name)"/>
             <rosparam file="$(find fuzzymar_multi_robot)/missions/$(arg mission_name)/initial_poses/$(arg robot_name).yaml" command="load"/>
         </node>

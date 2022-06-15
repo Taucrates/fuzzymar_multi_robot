@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<robot name="kobuki_standalone"
+       xmlns:sensor="http://playerstage.sourceforge.net/gazebo/xmlschema/#sensor"
+       xmlns:controller="http://playerstage.sourceforge.net/gazebo/xmlschema/#controller"
+       xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
+       xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- Defines the kobuki component tag. -->
+  <xacro:include filename="$(find kobuki_description)/urdf/kobuki.urdf.xacro" />
+  <xacro:kobuki/>
+
+  <xacro:include filename="$(find fuzzymar_multi_robot)/simulation/sensors/xacro/hokuyo.xacro"/>
+  <xacro:laser name="base_scan" parent="base_link" xyz="0.10 0 0.15" rpy="0 0 0" meshes="package://gazebo_plugins/test/multi_robot_scenario/meshes/laser"/>
+
+  <!--Apendix, for the bobukis to be seen by others in gazebo  -->
+
+  <xacro:include filename="$(find fuzzymar_multi_robot)/simulation/kobuki_parts/custom_part.xacro"/>
+  <xacro:custom_part name="base_shell" parent="base_link" xyz="0 0 0.1" rpy="0 0 -1.57" uriheader="file://$(find fuzzymar_multi_robot)/simulation/kobuki_parts/meshes" part="cobertura"/>
+
+</robot>

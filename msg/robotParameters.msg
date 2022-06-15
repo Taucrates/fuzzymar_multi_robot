@@ -5,4 +5,10 @@ float32 alpha_utility
 float32 beta_distance
 float32 gamma_ports
 string selection_task
-
+float32 calc_stim_time
+bool calc_stim_way
+int8 sdl_method
+int8 agregation_type
+float32 w1
+float32 w2
+float32 w3

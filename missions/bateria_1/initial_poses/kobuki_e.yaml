@@ -1,0 +1,8 @@
+# frame_id: /map
+# initial_pose_x: float in meters
+# initial_pose_y: float in meters
+# initial_pose_a: float in radians (yaw)
+
+initial_pose_x: -4.3
+initial_pose_y: 0.0
+initial_pose_a: 0.0

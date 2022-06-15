@@ -35,20 +35,20 @@ float getUtilityDD(int id_task,ros::Time mission_time, float utility_max); // ge
 float getUmax(); // get the max U of all the tasks
 float getUmaxDL(ros::Time mission_time,float utility_max); // get the max U of all the tasks taking account the U variable depending on DL
 
-// STIMULUS
+// POSSIBILISTIC STIMULUS
 float getDistanceStimulus(int task); // get the current robot stimulus for a given task
 float getUtilityStimulus(int task); // get the utility stimulus
 float getUtility_w_DeadlineStimulus(int task, ros::Time mission_time, float utility_max); // get the utility stimulus taking into account the deadline
 float getPortsStimulus(int task);
 
-// NEW STIMULUS
+// DETERMINISTIC STIMULUS
 float sdl_V1(int task);   // utility stimulus version 1 (sdl1(t))
 float sdl_V2(int task);   // utility stimulus version 2 (sdl2(t))
 
 float sds(int task, Current_goal current_task);      // distance stimulus (sds(t))
 
 float iL(int task);       // ports stimulus (iL(occupied(t)))
-
+float IN(int task);       // inertia stimulus IN(t)
 
 // PROBABILITIES TABLE
 void setProbabilities(float thres, float d_max, float u_max, ros::Time mission_time, float utility_max); // build the probabilities vector {id_task, stimulus, probability}

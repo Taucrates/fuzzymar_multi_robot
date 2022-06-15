@@ -3,7 +3,7 @@
   <arg name="world_label" default="srvlab_clean"/>
 
   <!-- start Gazebo -->
-  <include file="$(find kobuki_multi_robot)/simulation/launch/gazebo.launch">
+  <include file="$(find fuzzymar_multi_robot)/launch/simulation/gazebo.launch">
     <arg name="world_label" value="$(arg world_label)"/>
   </include>
 

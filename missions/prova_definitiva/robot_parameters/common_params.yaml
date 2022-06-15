@@ -1,0 +1,24 @@
+# alpha_utility:  (float) influence factor of utility in the stimulus
+# beta_distance:  (float) influence factor of distance in the stimulus
+# gamma_ports: 	  (float) influence factor of free/occupied ports in the stimulus
+# UDD_factor: 	  (float) factor related to variable utility function
+# speed_lim_v: 	  (float) max speed in X of the robot (parameter of velocity smoother node)
+# calc_stim_time: (float) how often the robot calculate the tasks stimulus in seconds. (min: 0.1s, step 0.1s)
+# calc_stim_way:  (bool)  true if the robot have to calculate running through tasks, false otherwise
+# sdl_method:	  (int)	  1: method 1, 2: method 2
+# agregation_type (int)	  0: t-norma min, 1: t-norma product, 2: OWA-modified
+# w1, w2, w3:	  (float) params for OWA agregation type -> w1 + w2 + w3 = 1 AND w1 >= w2 >= w3
+
+alpha_utility: 1.0
+beta_distance: 1.0
+gamma_ports: 1.0
+UDD_factor: 0.07
+speed_lim_v: 0.25
+calc_stim_time: 3.0
+calc_stim_way: True
+sdl_method: 1
+agregation_type: 2
+w1: 0.333333333333333
+w2: 0.333333333333333
+w3: 0.333333333333333
+

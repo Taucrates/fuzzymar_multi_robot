@@ -48,8 +48,6 @@ std::string goal_status_sub_topic = "move_base/status";
 //std::pair<float, float> current_position; // current position of the robot
 //Current_goal current_goal; // current task declared as objective {task_id, x, y, yaw}
 
-fuzzymar_multi_robot::port current_port;
-
 uint8_t status = 255; // objective status of the robot -> 1 == in the way to goal // 3 == goal reached // 255 == no status 
 
 ros::Time init_task; // time at which the robot begins to work in the current task 
@@ -762,8 +760,14 @@ void publishRobParamInfo(ros::Publisher& rob_param_pub)
   aux.alpha_utility = alpha_utility;
   aux.beta_distance = beta_distance;
   aux.gamma_ports = gamma_ports;
-  if(possibilistic){aux.selection_task = "possibilistic";}
-  else{aux.selection_task = "deterministic";}
+  aux.selection_task = "possibilistic";
+  aux.calc_stim_time = -1.0;
+  aux.calc_stim_way = false;
+  aux.sdl_method = -1;
+  aux.agregation_type = -1;
+  aux.w1 = -1.0;
+  aux.w2 = -1.0;
+  aux.w3 = -1.0;
 
   rob_param_pub.publish(aux);
 }

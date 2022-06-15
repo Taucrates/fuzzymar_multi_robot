@@ -49,8 +49,6 @@ std::string state_sub_topic = "/mission_state";
 std::string pose_sub_topic = "amcl_pose";
 std::string goal_status_sub_topic = "move_base/status";
 
-fuzzymar_multi_robot::port current_port;
-
 uint8_t status = 255; // objective status of the robot -> 1 == in the way to goal // 3 == goal reached // 255 == no status 
 
 ros::Time init_task; // time at which the robot begins to work in the current task 
@@ -153,7 +151,7 @@ void missionStateCallback(const fuzzymar_multi_robot::task_w_portsArray::ConstPt
           current_port.yaw = aux_port.yaw;
 
           port_assigned = true;
-          printf("Kobuki_%i HAS SETTED the port %i of task %i\n", kobuki_id, aux_port.id_port, current_goal.id_task);
+          //printf("Kobuki_%i HAS SETTED the port %i of task %i\n", kobuki_id, aux_port.id_port, current_goal.id_task);
         }
         
       }
@@ -427,7 +425,7 @@ int main(int argc, char **argv)
           setPortPriority(); // the port priority for the current task (using distance) is setted 
 
           publishTaskObjective(&task_ports_pub); // the task objective and its own port priority is published
-          if(recalculate){printf(ANSI_COLOR_YELLOW "Kobuki_%i ***RECALCULATE*** the task and port.\n" ANSI_COLOR_RESET , kobuki_id);}
+          if(recalculate){printf(/*ANSI_COLOR_YELLOW*/ "Kobuki_%i ***RECALCULATE*** the task and port.\n" /*ANSI_COLOR_RESET*/ , kobuki_id);}
 
           disponible_ports = disponiblePorts(); // set to true if there are free_ports in the current task
           recalculate = false;
@@ -440,7 +438,7 @@ int main(int argc, char **argv)
         {
           //publishGoal(&goal_pub, current_goal); // the current_goal is published on /kobuki_x/move_base_simple/goal topic
           calculated_task = true; 
-          printf("Kobuki_%i CALCULATE task %i and still has to assign port\n", kobuki_id, current_goal.id_task); 
+          //printf("Kobuki_%i CALCULATE task %i and still has to assign port\n", kobuki_id, current_goal.id_task); 
 
           // IF NEW TASK OBJECTIVE IS CALCULATED HAS TO CANCEL THE LAST OBJECTIVE
           actionlib_msgs::GoalID cancel_msg;
@@ -465,7 +463,7 @@ int main(int argc, char **argv)
           if(count_no_port_assigned_msg > LOOP_RATE/2) // in that point we should have been received a port assignation, if not robot has to recalculate
           {
             
-            printf(ANSI_COLOR_YELLOW "Kobuki_%i has to recalculate the task and port.\n" ANSI_COLOR_RESET, kobuki_id);
+            printf(/*ANSI_COLOR_YELLOW*/ "Kobuki_%i has to recalculate the task and port.\n" /*ANSI_COLOR_RESET*/, kobuki_id);
             recalculate = true;
             count_no_port_assigned_msg = 0;
             //count_recalculate++;
@@ -839,12 +837,18 @@ void publishRobParamInfo(ros::Publisher& rob_param_pub)
 
   aux.id_robot = kobuki_id;
   aux.max_vel = max_vel;
-  aux.UDD_factor = UDD_factor;
-  aux.alpha_utility = alpha_utility;
-  aux.beta_distance = beta_distance;
-  aux.gamma_ports = gamma_ports;
-  if(possibilistic){aux.selection_task = "possibilistic";}
-  else{aux.selection_task = "deterministic";}
+  aux.UDD_factor = -1.0;
+  aux.alpha_utility = -1.0;
+  aux.beta_distance = -1.0;
+  aux.gamma_ports = -1.0;
+  aux.selection_task = "deterministic";
+  aux.calc_stim_time = calc_stim_time;
+  aux.calc_stim_way = calc_stim_way;
+  aux.sdl_method = sdl_method;
+  aux.agregation_type = agregation_type;
+  aux.w1 = w1;
+  aux.w2 = w2;
+  aux.w3 = w3;
 
   rob_param_pub.publish(aux);
 }

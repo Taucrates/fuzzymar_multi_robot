@@ -61,6 +61,7 @@ struct Probability {
   double probability;
   double norm_probability;
   double accumulative;
+  double i_stimulus;
 };
 
 // GLOBAL VARIABLES
@@ -83,6 +84,7 @@ float max_vel_aux = 0.2;
 
 int sdl_method = 1;        // default method 1 -> 1: method 1, 2: method 2
 int agregation_type = 0;   // default t-norma mínimo -> 0: t-norma mínimo  1: t-norma producto 2: OWA-modified 
+float p_inertia = 1.0;
 
 float w1 = 1.0/3.0;        // default 1/3
 float w2 = 1.0/3.0;        // default 1/3
@@ -102,6 +104,7 @@ ros::Time mission_time; // the time at wich the mission starts
 std::vector<Task> missions;
 std::pair<float, float> current_position; // current position of the robot
 Current_goal current_goal; // current task declared as objective {task_id, x, y, yaw}
+fuzzymar_multi_robot::port current_port; // the current port where the robot is going
 Current_goal task_Ti;      // current task where robot has already arrived
 std::vector<Probability> probabilities; // vector where probabilities are saved
 

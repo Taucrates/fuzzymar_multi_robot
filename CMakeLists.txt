@@ -71,6 +71,9 @@ add_library(libraries
 target_link_libraries(libraries ${catkin_LIBRARIES})
 
 ## nodes
+add_executable(model_state_setter src/model_state_setter.cpp)
+target_link_libraries(model_state_setter ${catkin_LIBRARIES})
+
 add_executable(monitor src/monitor.cpp)
 target_link_libraries(monitor ${catkin_LIBRARIES})
 

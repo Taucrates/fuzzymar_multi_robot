@@ -111,6 +111,21 @@ int robotsAssigned(int task)
   return num_robots;
 }
 
+int allRobotsAssigned(int task)
+{
+  int num_robots = 0;
+
+  for(int i = 0 ; i < missions[task].ports.size() ; i++)
+  {
+    if(missions[task].ports[i].id_kobuki != 0)
+    {
+      num_robots++;
+    }
+  }
+
+  return num_robots;
+}
+
 float getNeededTime(int task, ros::Time mission_time) // fTj
 {
   float needed_time = 0.0;
@@ -269,6 +284,7 @@ void setProbabilities(float thres, float d_max, float u_max, ros::Time mission_t
   float utility_stim = 0.0, u_stim_norm = 0.0;
   float ports_stim = 0.0, p_stim_norm = 0.0;
   float sum_prob = 0.0, sum_norm = 0.0;
+  float inertia_stim = 0.0;
 
   for(int i = 1 ; i <= missions.size() ; i++)
   {
@@ -312,7 +328,7 @@ void setProbabilities(float thres, float d_max, float u_max, ros::Time mission_t
     accumul = 0.0;
     sum_prob += prob;
 
-    Probability aux_prob = {id, d_stim_norm, u_stim_norm, p_stim_norm, stim, prob, norm_prob, accumul};
+    Probability aux_prob = {id, d_stim_norm, u_stim_norm, p_stim_norm, stim, prob, norm_prob, accumul, inertia_stim};
 
     probabilities.push_back(aux_prob);
   }
@@ -399,7 +415,11 @@ float sds(int task, Current_goal current_task)
 
     aux = 0.0;
 
-  } else {
+  } /*else if(current_task.id_task == missions[task].id_task) { // commenting this else if structure we leave as before
+  
+    aux = (distance(current_position.first, current_position.second, missions[task].ports[current_port.id_port].x, missions[task].ports[current_port.id_port].y)) / (max_vel * missions[task].weight);
+
+  }*/ else {
 
     aux = (distance(current_position.first, current_position.second, missions[task].x, missions[task].y)) / (max_vel * missions[task].weight);
 
@@ -423,10 +443,13 @@ float iL(int task)
 {
   float stim = 0.0;
 
-  // TAKING ACCOUNT THE ROBOTS ASSIGNED TO THE TASK (no itself)
-  stim = (1.0 - ((double)robotsAssigned(task) / (double)missions[task].ports.size()));
+  // TAKING ACCOUNT THE ROBOTS ASSIGNED TO THE TASK (also itself)
+  stim = (1.0 - ((double)allRobotsAssigned(task) / (double)missions[task].ports.size()));
 
-  // TAKING ACCOUNT THE ROBOTS WORKING IN THE TASK
+  // TAKING ACCOUNT THE ROBOTS ASSIGNED TO THE TASK (no itself)
+  //stim = (1.0 - ((double)robotsAssigned(task) / (double)missions[task].ports.size()));
+
+  // TAKING ACCOUNT THE ROBOTS WORKING IN THE TASK (no itself)
   // This 'if' structure to avoid the robot take account of itself when is working in a task
   /*if(working && missions[task].id_task == task_Ti.id_task)
   {
@@ -439,6 +462,15 @@ float iL(int task)
   return stim;
 }
 
+float IN(int task)
+{
+  if(current_goal.id_task == missions[task].id_task)
+  {
+    return p_inertia;
+  } 
+
+  return 0.0;
+}
 
 /*********************************************************************************************************************************************************
 ***************************************************************    NEW PROBABILITIES    ******************************************************************
@@ -497,6 +529,7 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
   double utility_stim, u_stim_norm = 0.0;
   double ports_stim, p_stim_norm = 0.0;
   double sum_prob = 0.0, sum_norm = 0.0;
+  double intertia_stim = 0.0;
 
   for(int i = 0; i < missions.size() ; i++)
   {
@@ -517,16 +550,17 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
        
     distance_stim = sds(i, current_task);   
     ports_stim = iL(i);
+    intertia_stim = IN(i);
 
     u_stim_norm = utility_stim;
     d_stim_norm = distance_stim;
     p_stim_norm = ports_stim;
- 
+    
     
     if((1.0 - ((double)robotsAssigned(i) / (double)missions[i].ports.size())) < 0.0000000001) // if task has not free ports prob has to be 0
     {
   
-      prob = 0.0;
+      stim = 0.0;
 
     } else {
 
@@ -559,7 +593,7 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
           break;
       }
 
-      prob = stim;
+      stim = std::max(stim, intertia_stim);
 
     }
     
@@ -568,7 +602,7 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
     accumul = 0.0;
     sum_prob += prob;
 
-    Probability aux_prob = {id, d_stim_norm, u_stim_norm, p_stim_norm, stim, prob, norm_prob, accumul};
+    Probability aux_prob = {id, d_stim_norm, u_stim_norm, p_stim_norm, stim, prob, norm_prob, accumul, intertia_stim};
 
     probabilities.push_back(aux_prob);
   }
@@ -579,11 +613,11 @@ void setStimulusDet(Current_goal current_task, int sdl_method, int agregation_ty
     probabilities[j].accumulative = sum_norm;
   }
 
-  /*printf("\n\n");
+  printf("\n\n");
   printf("KOBUKI_%i:\n", kobuki_id);
   for(int i = 0 ; i < probabilities.size() ; i++)
   {
-    printf("ID: %i , D_STIM: %f, U_STIM: %f, P_STIM: %f, STIMULUS: %25.24f\n", probabilities[i].id_task, probabilities[i].d_stimulus, probabilities[i].u_stimulus, probabilities[i].p_stimulus, probabilities[i].probability);
-  }*/
+    printf("ID: %i , D_STIM: %f, U_STIM: %f, P_STIM: %f, I_STIM: %f, STIMULUS: %25.24f\n", probabilities[i].id_task, probabilities[i].d_stimulus, probabilities[i].u_stimulus, probabilities[i].p_stimulus, probabilities[i].i_stimulus, probabilities[i].stimulus);
+  }
 
 } 
