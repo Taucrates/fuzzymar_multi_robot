@@ -17,6 +17,8 @@
 #include "actionlib_msgs/GoalStatus.h"
 #include "actionlib_msgs/GoalStatusArray.h"
 
+#include <fuzzymar_multi_robot/token.h>
+
 #include <dynamic_reconfigure/server.h>
 #include <fuzzymar_multi_robot/kobukisConfig.h>
 
@@ -81,8 +83,17 @@ void publishPortGoal(ros::Publisher* goal_pub, fuzzymar_multi_robot::port goal);
 void publishTask(ros::Publisher* task_pub);  
 void publishTaskObjective(ros::Publisher* task_ports_pub);
 void publishRobParamInfo(ros::Publisher& rob_param_pub);
-
 void publishRotation(ros::Publisher* rotate_pub);
+
+// SEQUENCIAL
+void publishTokenUpdate(ros::Publisher* token_update_pub);
+uint8_t token = 0;
+bool calcStimSEQ(uint8_t token_, bool calc_stim_way, bool first_loop_);
+bool calcStimSEQU(float calc_stim_time, int counter, bool calc_stim_way, uint8_t token_);
+bool calcOnce = false;
+bool token_update = false;
+
+
 
 /********************************************************************************************
 *************************************** CALLBACKS *******************************************
@@ -224,6 +235,16 @@ void pathCallback(const nav_msgs::Path::ConstPtr& path_msg)
   
 }
 
+void tokenCallback(const fuzzymar_multi_robot::token::ConstPtr& token_msg)
+{
+  token = token_msg -> token_kobuki;
+  if(token == kobuki_id)
+  {
+    calcOnce = true;
+    token_update = true;
+  }
+}
+
 /********************************************************************************************
 ***************************************** MAIN **********************************************
 ********************************************************************************************/
@@ -251,6 +272,9 @@ int main(int argc, char **argv)
   ros::Subscriber odom_sub = n.subscribe("odom", 1, odomCallback);
   ros::Subscriber path_sub = n.subscribe("move_base/DWAPlannerROS/global_plan", 10, pathCallback);
 
+  ros::Subscriber token_sub = n.subscribe("/token", 10, tokenCallback);
+
+
   // Publishers
   ros::Publisher goal_pub = n.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 10);
   ros::Publisher task_pub = n.advertise<fuzzymar_multi_robot::action_task_w_ports>("/treball", 10);
@@ -258,6 +282,8 @@ int main(int argc, char **argv)
   ros::Publisher task_ports_pub = n.advertise<fuzzymar_multi_robot::taskObjective>("/decidedTask", 10);
   ros::Publisher rotate_pub = n.advertise<geometry_msgs::Twist>("mobile_base/commands/velocity", 10);
   ros::Publisher rob_param_pub = n.advertise<fuzzymar_multi_robot::robotParameters>("/rob_parameters_info", 10);
+
+  ros::Publisher token_update_pub = n.advertise<std_msgs::Empty>("/token_update", 10);
 
   // Params
   n.getParam("det_robot_operation_ports/kobuki_id", kobuki_id);   // "/node_name(indicated inside this code)/param_name" --> the first '/' depends if groupns is used or not
@@ -414,7 +440,13 @@ int main(int argc, char **argv)
         
       } else {
 
-        if(first_loop || calcStim(calc_stim_time, count, calc_stim_way) || recalculate){  // NOW ONLY RECALCULATE A POSSIBLE NEW GOAL WHEN A TASK IS END ¿¿¿¿¿¿ HOW TO DO ??????
+        if(token_update)
+        {
+          publishTokenUpdate(&token_update_pub);
+          token_update = false;
+        }
+
+        if(calcOnce && calcStimSEQ(token, calc_stim_way, first_loop)/*calcStimSEQU(calc_stim_time, count, calc_stim_way, token) first_loop || calcStim(calc_stim_time, count, calc_stim_way) || recalculate*/){  // NOW ONLY RECALCULATE A POSSIBLE NEW GOAL WHEN A TASK IS END ¿¿¿¿¿¿ HOW TO DO ??????
 
           //setStimulusDet(current_goal, sdl_method, agregation_type, w1, w2, w3); // the stimulus for each task are obtained (current_goal -> means the Ti task is uploaded when the robot decided to go to the task)
           setStimulusDet(task_Ti, sdl_method, agregation_type, w1, w2, w3); // the stimulus for each task are obtained (task_Ti -> means the Ti task is uploaded when the robot arrive to the task)
@@ -430,6 +462,7 @@ int main(int argc, char **argv)
           disponible_ports = disponiblePorts(); // set to true if there are free_ports in the current task
           recalculate = false;
           count = 0;
+          calcOnce = false;
 
         }
 
@@ -632,6 +665,60 @@ bool calcStim(float calc_stim_time, int counter, bool calc_stim_way)
   
 }
 
+bool calcStimSEQU(float calc_stim_time, int counter, bool calc_stim_way, uint8_t token_)
+{
+  int aux = calc_stim_time * LOOP_RATE;
+
+  // Have to calculate if the indicated time step (calc_stim_time) is reached
+  if(token_ == kobuki_id)
+  {
+    if(aux <= counter)
+    {
+      if(!calc_stim_way)
+      {
+        if(kobuki_state == Navigating || kobuki_state == Computing)
+        {
+          return false;
+        }
+      }
+      
+      return true;
+    }
+
+  }
+
+  return false;
+  
+}
+
+void publishTokenUpdate(ros::Publisher* token_update_pub)
+{
+  std_msgs::Empty update;
+
+  token_update_pub -> publish(update);
+
+}
+
+bool calcStimSEQ(uint8_t token_, bool calc_stim_way, bool first_loop_)
+{
+  // Have to calculate if token indicates
+  if(token_ == kobuki_id)
+  {
+    if(!calc_stim_way)
+    {
+      if(kobuki_state == Navigating || kobuki_state == Stuck)
+      {
+        return false;
+      }
+    }
+    //printf("_____________________________________________ kobuki_%i calculate", kobuki_id);
+    return true;
+  }
+
+  return false;
+  
+}
+
 Current_goal setTaskObjectivePossibilistic(float rand)
 {
   Current_goal aux_objective;
@@ -696,7 +783,7 @@ void setPortPriority()
   std::pair<int,float> aux_ports;
   ports_priority.clear();
 
-  for(int i = 0 ; i < missions.size() ; i++) // loop to get the positon of the task in the missions vector
+  for(int i = 0 ; i < missions.size() ; i++) // loop to get the position of the task in the missions vector
   {
     if(current_goal.id_task == missions[i].id_task)
     {

@@ -17,7 +17,7 @@ speed_lim_v: 0.25
 calc_stim_time: 3.0
 calc_stim_way: True
 sdl_method: 1
-agregation_type: 2
+agregation_type: 1
 w1: 0.333333333333333
 w2: 0.333333333333333
 w3: 0.333333333333333

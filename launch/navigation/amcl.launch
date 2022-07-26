@@ -5,7 +5,7 @@
   
   <group ns="$(arg robot_name)">
     <!-- AMCL -->
-    <node pkg="amcl" type="amcl" name="amcl">
+    <node pkg="amcl" type="amcl" name="amcl" output="log">
       <!-- amcl configuration -->
       <rosparam file="$(find fuzzymar_multi_robot)/config/amcl.yaml" command="load"/>
       <!-- initial pose given a mission -->

@@ -8,6 +8,7 @@
   <arg name="initial_pose_a" default="0"/>
 
   <group ns="$(arg robot_name)">
+    <param name="tf_prefix" value="$(arg robot_name)"/>
     <param name="robot_description"
           command="$(find xacro)/xacro '$(find fuzzymar_multi_robot)/urdf/kobuki.urdf.xacro'"/>
     <node pkg="gazebo_ros" type="spawn_model" name="spawn_$(arg robot_name)"

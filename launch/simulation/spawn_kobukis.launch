@@ -25,6 +25,6 @@
   <include file="$(find fuzzymar_multi_robot)/simulation/includes/robot.launch">
     <arg name="robot_name" value="kobuki_e"/>
     <arg name="initial_pose_x" value="4"/> 
-  </include>
+  </include> 
   
 </launch>

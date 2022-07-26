@@ -1,0 +1,2 @@
+uint8 token_kobuki
+uint8 counter

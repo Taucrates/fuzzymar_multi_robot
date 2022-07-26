@@ -31,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
    taskObjective.msg
    time_task.msg
    robotParameters.msg
+   token.msg
  )
 
 ## Generate added messages and services with any dependencies listed here

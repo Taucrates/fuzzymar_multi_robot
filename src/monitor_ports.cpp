@@ -16,6 +16,8 @@
 #include "visualization_msgs/MarkerArray.h"
 #include "visualization_msgs/Marker.h"
 
+#include <fuzzymar_multi_robot/token.h>
+
 #include <stdio.h>
 #include <fstream>
 #include <string>
@@ -78,6 +80,17 @@ void missionsUpdate(ros::Publisher& time_pub);
 void cleanprintGreen();   // avoid paint green one cycle, when robot change task the interface
 void printInterface();
 std::string current_date();
+
+
+
+// SEQUENCIAL
+void publishToken(ros::Publisher* token_pub);
+fuzzymar_multi_robot::token token_msg;
+
+bool publish_token = true;
+uint8_t token_counter = 1;
+uint8_t aux_token_cnt = 0;
+uint8_t token = 1;
 
 /********************************************************************************************
 *************************************** CALLBACKS *******************************************
@@ -163,12 +176,20 @@ void willingPortCallback(const fuzzymar_multi_robot::taskObjective::ConstPtr& wi
           missions[i].ports[(willing->port_priority[j])-1].id_kobuki = willing->id_kobuki;
           //printf("Kobuki_%i set the port %i of the task %i as objective.\n", willing->id_kobuki, willing->port_priority[j], willing->id_task);
           //printf("Kobuki ID in missions: %i\n", missions[i].ports[(willing->port_priority[j])-1].id_kobuki);
+
+          //if(willing->id_kobuki == token){publish_token = true;}
+
           break;
         }
       }
       break;
     }
   }
+}
+
+void tokenUpdateCallback(const std_msgs::Empty::ConstPtr& update)
+{
+  publish_token = true;
 }
 
 
@@ -188,11 +209,15 @@ int main(int argc, char **argv)
   ros::Subscriber ports_sub = n.subscribe("/ports", 1000, portsCallback);
   ros::Subscriber willing_sub = n.subscribe("/decidedTask", 1000, willingPortCallback);
 
+  ros::Subscriber token_update_sub = n.subscribe("/token_update", 1000, tokenUpdateCallback);
+
 	// Publishers
   ros::Publisher mission_pub = n.advertise<fuzzymar_multi_robot::task_w_portsArray>(state_pub_topic, 10);
   ros::Publisher vis_pub = n.advertise<visualization_msgs::MarkerArray>( "visualization_marker_array", 1);
   ros::Publisher end_mission_pub = n.advertise<std_msgs::Empty>( "/mission_accomplished", 10);
   ros::Publisher time_pub = n.advertise<fuzzymar_multi_robot::time_task>( "/time_information", 10);
+
+  ros::Publisher token_pub = n.advertise<fuzzymar_multi_robot::token>( "/token", 10);
 
   // Variable as buffer to read de keyboard 
   char cmd[1];
@@ -203,10 +228,12 @@ int main(int argc, char **argv)
 
   // Write mission info
   std::ofstream outfile;
-  std::string folder_directory = "/home/tonitauler/catkin_ws/src/fuzzymar_multi_robot/data/";
+  std::string folder_directory = "/home/tonitauler/ROS/kobuki_ws/src/fuzzymar_multi_robot/data/";
   std::string file_name = folder_directory + current_date() + ".csv";
 
   ros::Rate loop_rate(LOOP_RATE);
+
+  token_msg.token_kobuki = 0;
 
   while (ros::ok())
   {
@@ -264,6 +291,11 @@ int main(int argc, char **argv)
       {
 
         publishMission(&mission_pub); // publish the vector missions when is updated
+
+        if(publish_token){
+          publishToken(&token_pub); // SEQUENCIAL
+          publish_token = false;
+        }
 
         cleanprintGreen();
 
@@ -370,6 +402,35 @@ void publishMission(ros::Publisher* mission_pub)
 		mission_buff.vector_size = missions.size();
    
     mission_pub->publish(mission_buff);
+}
+
+void publishToken(ros::Publisher* token_pub)
+{
+
+  if(aux_token_cnt == 5)
+  {
+    token = 0;
+    token_counter++;
+    if(token_counter == 6)
+    {
+      token_counter = 1;
+    }
+    aux_token_cnt = 0;
+  }
+
+  token = aux_token_cnt + token_counter;
+
+  if(token > 5){
+    token = token % 5;
+  }
+
+  token_msg.token_kobuki = token;
+  
+  //printf("Token: %i\n", token_msg.token_kobuki);
+  token_pub->publish(token_msg);
+
+  aux_token_cnt++;
+  
 }
 
 void publishMarkers(ros::Publisher* vis_pub)
